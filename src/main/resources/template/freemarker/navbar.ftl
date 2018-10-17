@@ -1,6 +1,7 @@
 <nav class="navbar navbar-expand-lg navbar-light fixed-top py-0" style="background-color: white;" id="main-nav">
     <a class="navbar-brand pt-1 pb-1" href="${root}/home">
         <img class="img-fluid" id="ceo-site-logo" src="${root}/img/ceo-logo.png">
+        <img id="ts-logo" height="52px" src="${root}/img/ts-logo.png">
     </a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>

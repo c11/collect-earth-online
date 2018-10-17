@@ -170,6 +170,27 @@
 		            </div>
 	            </div>
 			</div>
+            <div class="row mb-3">
+                <div class="col">
+                    <h2 class="header px-0">TimeSync Configuration</h2>
+                    <div id="project-ts">
+                        <div class="form-group mb-1">
+                            <div class="form-group mb-1">
+                                <p for="num-plots">Start Year</p>
+                                <input class="form-control form-control-sm" type="number" id="ts-start-year" name="ts-start-year" autocomplete="off" min="1985" step="1">
+                            </div>
+                            <div class="form-group mb-1">
+                                <p for="num-plots">Start Year</p>
+                                <input class="form-control form-control-sm" type="number" id="ts-end-year" name="ts-end-year" autocomplete="off" min="1985" step="1">
+                            </div>
+                            <div class="form-group mb-1">
+                                <p for="num-plots">Target Day</p>
+                                <input class="form-control form-control-sm" type="number" id="ts-target-day" name="ts-target-day" autocomplete="off" min="1" max="365" step="1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 			<div class="row mb-3">
 				<div class="col">
 	                <h2 class="header px-0">Plot Design</h2>

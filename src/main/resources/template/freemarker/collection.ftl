@@ -141,6 +141,10 @@
         <div class="row">
             <div class="col-sm-12 btn-block">
                 <button id="save-values-button" class="btn btn-outline-lightgreen btn-sm btn-block" type="button"
+                        name="save-values" style="opacity:0.5">
+                    Open in TimeSync
+                </button>
+                <button id="save-values-button" class="btn btn-outline-lightgreen btn-sm btn-block" type="button"
                         name="save-values" ng-click="collection.saveValues()" style="opacity:0.5" disabled>
                     Save
                 </button>

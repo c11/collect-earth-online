@@ -6,6 +6,9 @@
     <a class="navbar-brand" href="${root}/home">
         <img class="img-fluid" id="ceo-site-logo" src="${root}/img/ceo-logo.png">
     </a>
+    <a class="navbar-brand" href="${root}/home">
+        <img class="img-fluid" id="ts-logo" src="${root}/img/ts-logo.png">
+    </a>
     <button class="navbar-toggler" type="button" data-toggle="collapse"
             data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
             aria-expanded="false" aria-label="Toggle navigation">
