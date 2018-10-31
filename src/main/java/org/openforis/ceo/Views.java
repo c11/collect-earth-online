@@ -14,8 +14,8 @@ import spark.template.freemarker.FreeMarkerEngine;
 public class Views {
 
     private static String fromSession(Request req, String attr) {
-        var value = (String) req.session().attribute(attr);
-        return (value == null) ? "" : value;
+        var value = req.session().attribute(attr);
+        return (value == null) ? "" : value.toString();
     }
 
     private static Map<String, String> getBaseModel(Request req, String navlink) {
@@ -167,8 +167,20 @@ public class Views {
                                       Map.of("project_id", getPid));
     }
 
+    public static Route testWidgetLayout(FreeMarkerEngine freemarker) {
+        Function<Request, String> getPid = (req) -> req.queryParams("pid");
+        return makeAuthenticatedRoute("Test-Layout-Editor", freemarker,
+                                      Map.of("project_id", getPid));
+    }
+
     public static Route cardTest(FreeMarkerEngine freemarker) {
         return makeRoute("Card-Test", freemarker);
+    }
+
+    public static Route timeSync(FreeMarkerEngine freemarker) {
+        Function<Request, String> getAccountId = (req) -> req.params(":id");
+        return makeAuthenticatedRoute("TimeSync", freemarker,
+                Map.of("interpreter", getAccountId));
     }
 
     public static Route pageNotFound(FreeMarkerEngine freemarker) {

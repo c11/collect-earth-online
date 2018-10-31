@@ -25,6 +25,7 @@ import com.google.gson.JsonPrimitive;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.PrecisionModel;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -32,6 +33,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
@@ -56,10 +59,10 @@ public class JsonProjects implements Projects {
         if (userId == null || userId.isEmpty()) {
             // Not logged in
             var filteredProjects = toStream(projects)
-                .filter(project -> project.get("archived").getAsBoolean() == false
-                                   && project.get("privacyLevel").getAsString().equals("public")
-                                   && project.get("availability").getAsString().equals("published"))
-                .map(project -> {
+                    .filter(project -> project.get("archived").getAsBoolean() == false
+                            && project.get("privacyLevel").getAsString().equals("public")
+                            && project.get("availability").getAsString().equals("published"))
+                    .map(project -> {
                         project.addProperty("editable", false);
                         return project;
                     });
@@ -67,15 +70,15 @@ public class JsonProjects implements Projects {
                 return filteredProjects.collect(intoJsonArray).toString();
             } else {
                 return filteredProjects
-                    .filter(project -> project.get("institution").getAsString().equals(institutionId))
-                    .collect(intoJsonArray)
-                    .toString();
+                        .filter(project -> project.get("institution").getAsString().equals(institutionId))
+                        .collect(intoJsonArray)
+                        .toString();
             }
         } else {
             var institutionRoles = (new JsonUsers()).getInstitutionRoles(Integer.parseInt(userId));
             var filteredProjects = toStream(projects)
-                .filter(project -> project.get("archived").getAsBoolean() == false)
-                .filter(project -> {
+                    .filter(project -> project.get("archived").getAsBoolean() == false)
+                    .filter(project -> {
                         var role = institutionRoles.getOrDefault(project.get("institution").getAsInt(), "");
                         var privacyLevel = project.get("privacyLevel").getAsString();
                         var availability = project.get("availability").getAsString();
@@ -83,18 +86,18 @@ public class JsonProjects implements Projects {
                             return (privacyLevel.equals("public") ||
                                     privacyLevel.equals("private") ||
                                     privacyLevel.equals("institution"))
-                                && (availability.equals("unpublished") ||
+                                    && (availability.equals("unpublished") ||
                                     availability.equals("published") ||
                                     availability.equals("closed"));
                         } else if (role.equals("member")) {
                             return (privacyLevel.equals("public") ||
                                     privacyLevel.equals("institution"))
-                                && availability.equals("published");
+                                    && availability.equals("published");
                         } else {
                             return privacyLevel.equals("public") && availability.equals("published");
                         }
                     })
-                .map(project -> {
+                    .map(project -> {
                         var role = institutionRoles.getOrDefault(project.get("institution").getAsInt(), "");
                         if (role.equals("admin")) {
                             project.addProperty("editable", true);
@@ -107,9 +110,9 @@ public class JsonProjects implements Projects {
                 return filteredProjects.collect(intoJsonArray).toString();
             } else {
                 return filteredProjects
-                    .filter(project -> project.get("institution").getAsString().equals(institutionId))
-                    .collect(intoJsonArray)
-                    .toString();
+                        .filter(project -> project.get("institution").getAsString().equals(institutionId))
+                        .collect(intoJsonArray)
+                        .toString();
             }
         }
     }
@@ -133,12 +136,24 @@ public class JsonProjects implements Projects {
         if (numPlots > maxPlots) {
             var stepSize = 1.0 * numPlots / maxPlots;
             return Stream.iterate(0.0, i -> i + stepSize)
-                .limit(maxPlots)
-                .map(i -> plots.get(Math.toIntExact(Math.round(i))))
-                .collect(intoJsonArray)
-                .toString();
+                    .limit(maxPlots)
+                    .map(i -> plots.get(Math.toIntExact(Math.round(i))))
+                    .collect(intoJsonArray)
+                    .toString();
         } else {
             return plots.toString();
+        }
+    }
+
+    public String getProjectPlot(Request req, Response res) {
+        var projectId = req.params(":project-id");
+        var plotId = req.params(":plot-id");
+        var plots = readJsonFile("plot-data-" + projectId + ".json").getAsJsonArray();
+        var matchingPlot = findInJsonArray(plots, plot -> plot.get("id").getAsString().equals(plotId));
+        if (matchingPlot.isPresent()) {
+            return matchingPlot.get().toString();
+        } else {
+            return "";
         }
     }
 
@@ -161,8 +176,8 @@ public class JsonProjects implements Projects {
             } else {
                 var institutions = readJsonFile("institution-list.json").getAsJsonArray();
                 var matchingInstitution = findInJsonArray(institutions,
-                                                                           institution ->
-                                                                           institution.get("id").getAsString().equals(institutionId));
+                        institution ->
+                                institution.get("id").getAsString().equals(institutionId));
                 if (matchingInstitution.isPresent()) {
                     var institution = matchingInstitution.get();
                     var admins = institution.getAsJsonArray("admins");
@@ -201,10 +216,10 @@ public class JsonProjects implements Projects {
         var analyzedPlots = filterJsonArray(plots, plot -> plot.get("analyses").getAsInt() > 0);
         var members = getProjectUsers(projectId);
         var contributors = toStream(plots)
-            .filter(plot -> !plot.get("user").isJsonNull())
-            .map(plot -> plot.get("user").getAsString())
-            .distinct()
-            .toArray(String[]::new);
+                .filter(plot -> !plot.get("user").isJsonNull())
+                .map(plot -> plot.get("user").getAsString())
+                .distinct()
+                .toArray(String[]::new);
 
         var stats = new JsonObject();
         stats.addProperty("flaggedPlots", flaggedPlots.size());
@@ -220,8 +235,8 @@ public class JsonProjects implements Projects {
         var currentPlotId = req.queryParams("currentPlotId");
         var plots = readJsonFile("plot-data-" + projectId + ".json").getAsJsonArray();
         var unanalyzedPlots = filterJsonArray(plots, plot -> plot.get("flagged").getAsBoolean() == false
-                                                             && plot.get("analyses").getAsInt() == 0
-                                                             && !plot.get("id").getAsString().equals(currentPlotId));
+                && plot.get("analyses").getAsInt() == 0
+                && !plot.get("id").getAsString().equals(currentPlotId));
         var numPlots = unanalyzedPlots.size();
         if (numPlots > 0) {
             var randomIndex = (int) Math.floor(numPlots * Math.random());
@@ -250,29 +265,32 @@ public class JsonProjects implements Projects {
     }
 
     private static Collector<String, ?, Map<String, Long>> countDistinct =
-        Collectors.groupingBy(Function.identity(), Collectors.counting());
+            Collectors.groupingBy(Function.identity(), Collectors.counting());
 
+    // FIXME: Update this function for the new surveyQuestion JSON structure
     private static String[] getValueDistributionLabels(JsonObject project) {
         var sampleValueGroups = project.get("sampleValues").getAsJsonArray();
         return toStream(sampleValueGroups)
-            .flatMap(group -> {
+                .flatMap(group -> {
                     var sampleValues = group.get("values").getAsJsonArray();
                     return toStream(sampleValues)
-                        .map(sampleValue -> group.get("name").getAsString() + ":" + sampleValue.get("name").getAsString());
+                            .map(sampleValue -> group.get("name").getAsString() + ":" + sampleValue.get("name").getAsString());
                 })
-            .toArray(String[]::new);
+                .toArray(String[]::new);
     }
 
+    // FIXME: Update this function for the new surveyQuestion JSON structure
     private static Map<Integer, String> getSampleValueTranslations(JsonObject project) {
         var sampleValueGroups = project.get("sampleValues").getAsJsonArray();
         var firstGroup = sampleValueGroups.get(0).getAsJsonObject();
         var firstGroupName = firstGroup.get("name").getAsString();
         return toStream(firstGroup.get("values").getAsJsonArray())
-            .collect(Collectors.toMap(sampleValue -> sampleValue.get("id").getAsInt(),
-                                      sampleValue -> firstGroupName + ":" + sampleValue.get("name").getAsString(),
-                                      (a, b) -> b));
+                .collect(Collectors.toMap(sampleValue -> sampleValue.get("id").getAsInt(),
+                        sampleValue -> firstGroupName + ":" + sampleValue.get("name").getAsString(),
+                        (a, b) -> b));
     }
 
+    // FIXME: Update this function for the new surveyQuestion JSON structure
     // Returns a JsonObject like this:
     // {"Land Use:Timber" 10.0,
     //  "Land Use:Agriculture": 20.0,
@@ -286,22 +304,22 @@ public class JsonProjects implements Projects {
             return new JsonObject();
         } else if (firstSample.get("value").isJsonPrimitive()) {
             var valueCounts = toStream(samples)
-                .map(sample -> sample.get("value").getAsInt())
-                .map(value -> sampleValueTranslations.getOrDefault(value, "NoValue"))
-                .collect(countDistinct);
+                    .map(sample -> sample.get("value").getAsInt())
+                    .map(value -> sampleValueTranslations.getOrDefault(value, "NoValue"))
+                    .collect(countDistinct);
             var valueDistribution = new JsonObject();
             valueCounts.forEach((name, count) -> valueDistribution.addProperty(name, 100.0 * count / samples.size()));
             return valueDistribution;
         } else {
             var valueCounts = toStream(samples)
-                .flatMap(sample -> sample.get("value").getAsJsonObject().entrySet().stream())
-                .collect(Collectors.groupingBy(Map.Entry::getKey,
-                                               Collectors.mapping(entry -> entry.getValue().getAsString(),
-                                                                  countDistinct)));
+                    .flatMap(sample -> sample.get("value").getAsJsonObject().entrySet().stream())
+                    .collect(Collectors.groupingBy(Map.Entry::getKey,
+                            Collectors.mapping(entry -> entry.getValue().getAsString(),
+                                    countDistinct)));
             var valueDistribution = new JsonObject();
             valueCounts.forEach((group, frequencies) -> {
-                    frequencies.forEach((name, count) -> valueDistribution.addProperty(group + ":" + name, 100.0 * count / samples.size()));
-                });
+                frequencies.forEach((name, count) -> valueDistribution.addProperty(group + ":" + name, 100.0 * count / samples.size()));
+            });
             return valueDistribution;
         }
     }
@@ -321,6 +339,7 @@ public class JsonProjects implements Projects {
         return response;
     }
 
+    // FIXME: Update this function for the new surveyQuestion JSON structure
     public HttpServletResponse dumpProjectAggregateData(Request req, Response res) {
         var projectId = req.params(":id");
         var projects = readJsonFile("project-list.json").getAsJsonArray();
@@ -331,25 +350,25 @@ public class JsonProjects implements Projects {
             var sampleValueTranslations = getSampleValueTranslations(project);
             var plots = readJsonFile("plot-data-" + projectId + ".json").getAsJsonArray();
             var plotSummaries = mapJsonArray(plots,
-                                             plot -> {
-                                                 var samples = plot.get("samples").getAsJsonArray();
-                                                 var center = parseJson(plot.get("center").getAsString()).getAsJsonObject();
-                                                 var coords = center.get("coordinates").getAsJsonArray();
-                                                 var plotSummary = new JsonObject();
-                                                 plotSummary.addProperty("plot_id", plot.get("id").getAsInt());
-                                                 plotSummary.addProperty("center_lon", coords.get(0).getAsDouble());
-                                                 plotSummary.addProperty("center_lat", coords.get(1).getAsDouble());
-                                                 plotSummary.addProperty("size_m", project.get("plotSize").getAsDouble());
-                                                 plotSummary.addProperty("shape", project.get("plotShape").getAsString());
-                                                 plotSummary.addProperty("flagged", plot.get("flagged").getAsBoolean());
-                                                 plotSummary.addProperty("analyses", plot.get("analyses").getAsInt());
-                                                 plotSummary.addProperty("sample_points", samples.size());
-                                                 plotSummary.add("user_id", plot.get("user"));
-                                                 plotSummary.add("timestamp", plot.get("timestamp"));
-                                                 plotSummary.add("distribution",
-                                                                 getValueDistribution(samples, sampleValueTranslations));
-                                                 return plotSummary;
-                                             });
+                    plot -> {
+                        var samples = plot.get("samples").getAsJsonArray();
+                        var center = parseJson(plot.get("center").getAsString()).getAsJsonObject();
+                        var coords = center.get("coordinates").getAsJsonArray();
+                        var plotSummary = new JsonObject();
+                        plotSummary.addProperty("plot_id", plot.get("id").getAsInt());
+                        plotSummary.addProperty("center_lon", coords.get(0).getAsDouble());
+                        plotSummary.addProperty("center_lat", coords.get(1).getAsDouble());
+                        plotSummary.addProperty("size_m", project.get("plotSize").getAsDouble());
+                        plotSummary.addProperty("shape", project.get("plotShape").getAsString());
+                        plotSummary.addProperty("flagged", plot.get("flagged").getAsBoolean());
+                        plotSummary.addProperty("analyses", plot.get("analyses").getAsInt());
+                        plotSummary.addProperty("sample_points", samples.size());
+                        plotSummary.add("user_id", plot.get("user"));
+                        plotSummary.add("timestamp", plot.get("timestamp"));
+                        plotSummary.add("distribution",
+                                getValueDistribution(samples, sampleValueTranslations));
+                        return plotSummary;
+                    });
 
             var fields = new String[]{"plot_id", "center_lon", "center_lat", "size_m", "shape", "flagged", "analyses", "sample_points", "user_id", "timestamp"};
             var labels = getValueDistributionLabels(project);
@@ -357,19 +376,19 @@ public class JsonProjects implements Projects {
             var csvHeader = Stream.concat(Arrays.stream(fields), Arrays.stream(labels)).map(String::toUpperCase).collect(Collectors.joining(","));
 
             var csvContent = toStream(plotSummaries)
-                .map(plotSummary -> {
+                    .map(plotSummary -> {
                         var fieldStream = Arrays.stream(fields);
                         var labelStream = Arrays.stream(labels);
                         var distribution = plotSummary.get("distribution").getAsJsonObject();
                         return Stream.concat(fieldStream.map(field -> plotSummary.get(field).isJsonNull()
-                                                                      ? ""
-                                                                      : plotSummary.get(field).getAsString()),
-                                             labelStream.map(label -> distribution.has(label)
-                                                                      ? distribution.get(label).getAsString()
-                                                                      : "0.0"))
-                                     .collect(Collectors.joining(","));
+                                        ? ""
+                                        : plotSummary.get(field).getAsString()),
+                                labelStream.map(label -> distribution.has(label)
+                                        ? distribution.get(label).getAsString()
+                                        : "0.0"))
+                                .collect(Collectors.joining(","));
                     })
-                .collect(Collectors.joining("\n"));
+                    .collect(Collectors.joining("\n"));
 
             var projectName = project.get("name").getAsString().replace(" ", "-").replace(",", "").toLowerCase();
             var currentDate = LocalDate.now().toString();
@@ -382,6 +401,7 @@ public class JsonProjects implements Projects {
         }
     }
 
+    // FIXME: Update this function for the new surveyQuestion JSON structure
     public HttpServletResponse dumpProjectRawData(Request req, Response res) {
         var projectId = req.params(":id");
         var projects = readJsonFile("project-list.json").getAsJsonArray();
@@ -392,36 +412,36 @@ public class JsonProjects implements Projects {
             var sampleValueTranslations = getSampleValueTranslations(project);
             var plots = readJsonFile("plot-data-" + projectId + ".json").getAsJsonArray();
             var sampleSummaries = flatMapJsonArray(plots,
-                                                   plot -> {
-                                                       var plotId = plot.get("id").getAsInt();
-                                                       var flagged = plot.get("flagged").getAsBoolean();
-                                                       var analyses = plot.get("analyses").getAsInt();
-                                                       var userId = plot.get("user");
-                                                       var timestamp = plot.get("timestamp");
-                                                       var samples = plot.get("samples").getAsJsonArray();
-                                                       return toStream(samples).map(sample -> {
-                                                               var center = parseJson(sample.get("point").getAsString())
-                                                                            .getAsJsonObject();
-                                                               var coords = center.get("coordinates").getAsJsonArray();
-                                                               var sampleSummary = new JsonObject();
-                                                               sampleSummary.addProperty("plot_id", plotId);
-                                                               sampleSummary.addProperty("sample_id", sample.get("id").getAsInt());
-                                                               sampleSummary.addProperty("lon", coords.get(0).getAsDouble());
-                                                               sampleSummary.addProperty("lat", coords.get(1).getAsDouble());
-                                                               sampleSummary.addProperty("flagged", flagged);
-                                                               sampleSummary.addProperty("analyses", analyses);
-                                                               sampleSummary.add("user_id", userId);
-                                                               sampleSummary.add("timestamp", timestamp);
-                                                               sampleSummary.add("value", sample.get("value"));
-                                                               return sampleSummary;
-                                                           });
-                                                   });
+                    plot -> {
+                        var plotId = plot.get("id").getAsInt();
+                        var flagged = plot.get("flagged").getAsBoolean();
+                        var analyses = plot.get("analyses").getAsInt();
+                        var userId = plot.get("user");
+                        var timestamp = plot.get("timestamp");
+                        var samples = plot.get("samples").getAsJsonArray();
+                        return toStream(samples).map(sample -> {
+                            var center = parseJson(sample.get("point").getAsString())
+                                    .getAsJsonObject();
+                            var coords = center.get("coordinates").getAsJsonArray();
+                            var sampleSummary = new JsonObject();
+                            sampleSummary.addProperty("plot_id", plotId);
+                            sampleSummary.addProperty("sample_id", sample.get("id").getAsInt());
+                            sampleSummary.addProperty("lon", coords.get(0).getAsDouble());
+                            sampleSummary.addProperty("lat", coords.get(1).getAsDouble());
+                            sampleSummary.addProperty("flagged", flagged);
+                            sampleSummary.addProperty("analyses", analyses);
+                            sampleSummary.add("user_id", userId);
+                            sampleSummary.add("timestamp", timestamp);
+                            sampleSummary.add("value", sample.get("value"));
+                            return sampleSummary;
+                        });
+                    });
 
             var sampleValueGroups = project.get("sampleValues").getAsJsonArray();
             var sampleValueGroupNames = toStream(sampleValueGroups)
-                .collect(Collectors.toMap(sampleValueGroup -> sampleValueGroup.get("id").getAsInt(),
-                                          sampleValueGroup -> sampleValueGroup.get("name").getAsString(),
-                                          (a, b) -> b));
+                    .collect(Collectors.toMap(sampleValueGroup -> sampleValueGroup.get("id").getAsInt(),
+                            sampleValueGroup -> sampleValueGroup.get("name").getAsString(),
+                            (a, b) -> b));
 
             var fields = new String[]{"plot_id", "sample_id", "lon", "lat", "flagged", "analyses", "user_id", "timestamp"};
             var labels = sampleValueGroupNames.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(Map.Entry::getValue).toArray(String[]::new);
@@ -429,24 +449,24 @@ public class JsonProjects implements Projects {
             var csvHeader = Stream.concat(Arrays.stream(fields), Arrays.stream(labels)).map(String::toUpperCase).collect(Collectors.joining(","));
 
             var csvContent = toStream(sampleSummaries)
-                .map(sampleSummary -> {
+                    .map(sampleSummary -> {
                         var fieldStream = Arrays.stream(fields);
                         var labelStream = Arrays.stream(labels);
                         return Stream.concat(fieldStream.map(field -> sampleSummary.get(field).isJsonNull() ? "" : sampleSummary.get(field).getAsString()),
-                                             labelStream.map(label -> {
-                                                     var value = sampleSummary.get("value");
-                                                     if (value.isJsonNull()) {
-                                                         return "";
-                                                     } else if (value.isJsonPrimitive()) {
-                                                         return sampleValueTranslations
-                                                             .getOrDefault(value.getAsInt(), "LULC:NoValue")
-                                                             .split(":")[1];
-                                                     } else {
-                                                         return value.getAsJsonObject().get(label).getAsString();
-                                                     }}))
-                                     .collect(Collectors.joining(","));
+                                labelStream.map(label -> {
+                                    var value = sampleSummary.get("value");
+                                    if (value.isJsonNull()) {
+                                        return "";
+                                    } else if (value.isJsonPrimitive()) {
+                                        return sampleValueTranslations
+                                                .getOrDefault(value.getAsInt(), "LULC:NoValue")
+                                                .split(":")[1];
+                                    } else {
+                                        return value.getAsJsonObject().get(label).getAsString();
+                                    }}))
+                                .collect(Collectors.joining(","));
                     })
-                .collect(Collectors.joining("\n"));
+                    .collect(Collectors.joining("\n"));
 
             var projectName = project.get("name").getAsString().replace(" ", "-").replace(",", "").toLowerCase();
             var currentDate = LocalDate.now().toString();
@@ -462,43 +482,43 @@ public class JsonProjects implements Projects {
     public synchronized String publishProject(Request req, Response res) {
         var projectId = req.params(":id");
         mapJsonFile("project-list.json",
-                    project -> {
-                        if (project.get("id").getAsString().equals(projectId)) {
-                            project.addProperty("availability", "published");
-                            return project;
-                        } else {
-                            return project;
-                        }
-                    });
+                project -> {
+                    if (project.get("id").getAsString().equals(projectId)) {
+                        project.addProperty("availability", "published");
+                        return project;
+                    } else {
+                        return project;
+                    }
+                });
         return "";
     }
 
     public synchronized String closeProject(Request req, Response res) {
         var projectId = req.params(":id");
         mapJsonFile("project-list.json",
-                    project -> {
-                        if (project.get("id").getAsString().equals(projectId)) {
-                            project.addProperty("availability", "closed");
-                            return project;
-                        } else {
-                            return project;
-                        }
-                    });
+                project -> {
+                    if (project.get("id").getAsString().equals(projectId)) {
+                        project.addProperty("availability", "closed");
+                        return project;
+                    } else {
+                        return project;
+                    }
+                });
         return "";
     }
 
     public synchronized String archiveProject(Request req, Response res) {
         var projectId = req.params(":id");
         mapJsonFile("project-list.json",
-                    project -> {
-                        if (project.get("id").getAsString().equals(projectId)) {
-                            project.addProperty("availability", "archived");
-                            project.addProperty("archived", true);
-                            return project;
-                        } else {
-                            return project;
-                        }
-                    });
+                project -> {
+                    if (project.get("id").getAsString().equals(projectId)) {
+                        project.addProperty("availability", "archived");
+                        project.addProperty("archived", true);
+                        return project;
+                    } else {
+                        return project;
+                    }
+                });
         return "";
     }
 
@@ -510,25 +530,25 @@ public class JsonProjects implements Projects {
         var userSamples = jsonInputs.get("userSamples").getAsJsonObject();
 
         mapJsonFile("plot-data-" + projectId + ".json",
-                    plot -> {
-                        if (plot.get("id").getAsString().equals(plotId)) {
-                            var currentAnalyses = plot.get("analyses").getAsInt();
-                            plot.addProperty("analyses", currentAnalyses + 1);
-                            plot.addProperty("user", userName);
-                            var samples = plot.get("samples").getAsJsonArray();
-                            var updatedSamples = mapJsonArray(samples,
-                                                              sample -> {
-                                                                  var sampleId = sample.get("id").getAsString();
-                                                                  sample.add("value", userSamples.get(sampleId));
-                                                                  return sample;
-                                                              });
-                            plot.add("samples", updatedSamples);
-                            plot.addProperty("timestamp", LocalDateTime.now().toString());
-                            return plot;
-                        } else {
-                            return plot;
-                        }
-                    });
+                plot -> {
+                    if (plot.get("id").getAsString().equals(plotId)) {
+                        var currentAnalyses = plot.get("analyses").getAsInt();
+                        plot.addProperty("analyses", currentAnalyses + 1);
+                        plot.addProperty("user", userName);
+                        var samples = plot.get("samples").getAsJsonArray();
+                        var updatedSamples = mapJsonArray(samples,
+                                sample -> {
+                                    var sampleId = sample.get("id").getAsString();
+                                    sample.add("value", userSamples.get(sampleId));
+                                    return sample;
+                                });
+                        plot.add("samples", updatedSamples);
+                        plot.addProperty("timestamp", LocalDateTime.now().toString());
+                        return plot;
+                    } else {
+                        return plot;
+                    }
+                });
 
         return "";
     }
@@ -540,16 +560,16 @@ public class JsonProjects implements Projects {
         var userName = jsonInputs.get("userId").getAsString();
 
         mapJsonFile("plot-data-" + projectId + ".json",
-                    plot -> {
-                        if (plot.get("id").getAsString().equals(plotId)) {
-                            plot.addProperty("flagged", true);
-                            plot.addProperty("user", userName);
-                            plot.addProperty("timestamp", LocalDateTime.now().toString());
-                            return plot;
-                        } else {
-                            return plot;
-                        }
-                    });
+                plot -> {
+                    if (plot.get("id").getAsString().equals(plotId)) {
+                        plot.addProperty("flagged", true);
+                        plot.addProperty("user", userName);
+                        plot.addProperty("timestamp", LocalDateTime.now().toString());
+                        return plot;
+                    } else {
+                        return plot;
+                    }
+                });
 
         return "";
     }
@@ -633,10 +653,10 @@ public class JsonProjects implements Projects {
         var xRange = right - left;
         var yRange = top - bottom;
         return Stream.generate(() -> new Double[]{left + Math.random() * xRange,
-                                                  bottom + Math.random() * yRange})
-            .limit(numPoints)
-            .map(point -> reprojectPoint(point, 3857, 4326))
-            .toArray(Double[][]::new);
+                bottom + Math.random() * yRange})
+                .limit(numPoints)
+                .map(point -> reprojectPoint(point, 3857, 4326))
+                .toArray(Double[][]::new);
     }
 
     // NOTE: Inputs are in Web Mercator and outputs are in WGS84 lat/lon
@@ -648,11 +668,11 @@ public class JsonProjects implements Projects {
         var xPadding = (xRange - xSteps * spacing) / 2.0;
         var yPadding = (yRange - ySteps * spacing) / 2.0;
         return Stream.iterate(left + xPadding, x -> x + spacing)
-            .limit(xSteps + 1)
-            .flatMap(x -> Stream.iterate(bottom + yPadding, y -> y + spacing)
-                     .limit(ySteps + 1)
-                     .map(y -> reprojectPoint(new Double[]{x, y}, 3857, 4326)))
-            .toArray(Double[][]::new);
+                .limit(xSteps + 1)
+                .flatMap(x -> Stream.iterate(bottom + yPadding, y -> y + spacing)
+                        .limit(ySteps + 1)
+                        .map(y -> reprojectPoint(new Double[]{x, y}, 3857, 4326)))
+                .toArray(Double[][]::new);
     }
 
     private static Double[][] createRandomSampleSet(Double[] plotCenter, String plotShape, double plotSize, int samplesPerPlot) {
@@ -666,14 +686,14 @@ public class JsonProjects implements Projects {
         var bottom = plotY - radius;
         if (plotShape.equals("circle")) {
             return Stream.generate(() -> 2.0 * Math.PI * Math.random())
-                .limit(samplesPerPlot)
-                .map(offsetAngle -> {
+                    .limit(samplesPerPlot)
+                    .map(offsetAngle -> {
                         var offsetMagnitude = radius * Math.random();
                         var xOffset = offsetMagnitude * Math.cos(offsetAngle);
                         var yOffset = offsetMagnitude * Math.sin(offsetAngle);
                         return reprojectPoint(new Double[]{plotX + xOffset, plotY + yOffset}, 3857, 4326);
                     })
-                .toArray(Double[][]::new);
+                    .toArray(Double[][]::new);
         } else {
             return createRandomPointsInBounds(left, bottom, right, top, samplesPerPlot);
         }
@@ -696,24 +716,55 @@ public class JsonProjects implements Projects {
         var steps = (long) Math.floor(plotSize / sampleResolution);
         var padding = (plotSize - steps * sampleResolution) / 2.0;
         return Stream.iterate(left + padding, x -> x + sampleResolution)
-            .limit(steps + 1)
-            .flatMap(x -> Stream.iterate(bottom + padding, y -> y + sampleResolution)
-                     .limit(steps + 1)
-                     .filter(y -> plotShape.equals("square") || squareDistance(x, y, centerX, centerY) < radiusSquared)
-                     .map(y -> reprojectPoint(new Double[]{x, y}, 3857, 4326)))
-            .toArray(Double[][]::new);
+                .limit(steps + 1)
+                .flatMap(x -> Stream.iterate(bottom + padding, y -> y + sampleResolution)
+                        .limit(steps + 1)
+                        .filter(y -> plotShape.equals("square") || squareDistance(x, y, centerX, centerY) < radiusSquared)
+                        .map(y -> reprojectPoint(new Double[]{x, y}, 3857, 4326)))
+                .toArray(Double[][]::new);
     }
 
-    // NOTE: The CSV file should contain a header row (which will be skipped) and these fields: lon, lat, ...
-    private static Double[][] loadCsvPoints(String filename) {
-		try (var lines = Files.lines(Paths.get(expandResourcePath("/csv/" + filename)))) {
-			return lines.skip(1)
-                .map(line -> {
+    // NOTE: The CSV file should contain a header row (which will be skipped) and these fields: LON, LAT, PLOTID
+    private static HashMap<String, Double[]> loadCsvPlotPoints(String filename) {
+        try (var lines = Files.lines(Paths.get(expandResourcePath("/csv/" + filename)))) {
+            var plotPoints = new HashMap<String, Double[]>();
+            lines
+                .skip(1)
+                .forEach(line -> {
                         var fields = Arrays.stream(line.split(",")).map(String::trim).toArray(String[]::new);
-                        return new Double[]{Double.parseDouble(fields[0]),
-                                            Double.parseDouble(fields[1])};
-                    })
-                .toArray(Double[][]::new);
+                        var plotId = fields[2];
+                        var plotCenter = new Double[]{Double.parseDouble(fields[0]),
+                                                      Double.parseDouble(fields[1])};
+                        plotPoints.put(plotId, plotCenter);
+                    });
+            return plotPoints;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // NOTE: The CSV file should contain a header row (which will be skipped) and these fields: LON, LAT, PLOTID, SAMPLEID
+    private static HashMap<String, HashMap<String, Double[]>> loadCsvSamplePoints(String filename) {
+        try (var lines = Files.lines(Paths.get(expandResourcePath("/csv/" + filename)))) {
+            var samplesByPlot = new HashMap<String, HashMap<String, Double[]>>();
+            lines
+                .skip(1)
+                .forEach(line -> {
+                        var fields = Arrays.stream(line.split(",")).map(String::trim).toArray(String[]::new);
+                        var plotId = fields[2];
+                        var sampleId = fields[3];
+                        var sampleCenter = new Double[]{Double.parseDouble(fields[0]),
+                                                        Double.parseDouble(fields[1])};
+                        if (samplesByPlot.containsKey(plotId)) {
+                            var samplePoints = samplesByPlot.get(plotId);
+                            samplePoints.put(sampleId, sampleCenter);
+                        } else {
+                            var samplePoints = new HashMap<String, Double[]>();
+                            samplePoints.put(sampleId, sampleCenter);
+                            samplesByPlot.put(plotId, samplePoints);
+                        }
+                    });
+            return samplesByPlot;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -735,8 +786,126 @@ public class JsonProjects implements Projects {
         return obj.get(field).isJsonNull() ? new JsonPrimitive(0) : obj.get(field);
     }
 
+    private static JsonElement getOrEmptyString(JsonObject obj, String field) {
+        return obj.get(field).isJsonNull() ? new JsonPrimitive("") : obj.get(field);
+    }
+
+    private static void extractZipFileToGeoJson(int projectId, String plotsOrSamples) {
+        try {
+            System.out.println("Converting the uploaded ZIP file into GeoJSON.");
+            var pb = new ProcessBuilder("/bin/sh", "shp2geojson.sh", "project-" + projectId + "-" + plotsOrSamples);
+            pb.directory(new File(expandResourcePath("/shp")));
+            var p = pb.start();
+            p.waitFor();
+            System.out.println("Conversion complete.");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // The uploaded GeoJson must contain Polygon geometries with PLOTID properties
+    private static HashMap<String, JsonObject> getGeoJsonPlotGeometries(int projectId) {
+        var geoJson = readJsonFile("../shp/project-" + projectId + "-plots"
+                                   + "/project-" + projectId + "-plots.json").getAsJsonObject();
+        if (geoJson.get("type").getAsString().equals("FeatureCollection")) {
+            var plotGeoms = new HashMap<String, JsonObject>();
+            toStream(geoJson.get("features").getAsJsonArray())
+                .filter(feature -> {
+                        var geometry = feature.get("geometry").getAsJsonObject();
+                        return geometry.get("type").getAsString().equals("Polygon");
+                    })
+                .forEach(feature -> {
+                        var geometry = feature.get("geometry").getAsJsonObject();
+                        var properties = feature.get("properties").getAsJsonObject();
+                        var plotId = properties.get("PLOTID").getAsString();
+                        plotGeoms.put(plotId, geometry);
+                    });
+            return plotGeoms;
+        } else {
+            return new HashMap<String, JsonObject>();
+        }
+    }
+
+    // The uploaded GeoJson must contain Polygon geometries with PLOTID and SAMPLEID properties
+    private static HashMap<String, HashMap<String, JsonObject>> getGeoJsonSampleGeometries(int projectId) {
+        var geoJson = readJsonFile("../shp/project-" + projectId + "-samples"
+                                   + "/project-" + projectId + "-samples.json").getAsJsonObject();
+        if (geoJson.get("type").getAsString().equals("FeatureCollection")) {
+            var sampleGeomsByPlot = new HashMap<String, HashMap<String, JsonObject>>();
+            toStream(geoJson.get("features").getAsJsonArray())
+                .filter(feature -> {
+                        var geometry = feature.get("geometry").getAsJsonObject();
+                        return geometry.get("type").getAsString().equals("Polygon");
+                    })
+                .forEach(feature -> {
+                        var geometry = feature.get("geometry").getAsJsonObject();
+                        var properties = feature.get("properties").getAsJsonObject();
+                        var plotId = properties.get("PLOTID").getAsString();
+                        var sampleId = properties.get("SAMPLEID").getAsString();
+                        if (sampleGeomsByPlot.containsKey(plotId)) {
+                            var sampleGeoms = sampleGeomsByPlot.get(plotId);
+                            sampleGeoms.put(sampleId, geometry);
+                        } else {
+                            var sampleGeoms = new HashMap<String, JsonObject>();
+                            sampleGeoms.put(sampleId, geometry);
+                            sampleGeomsByPlot.put(plotId, sampleGeoms);
+                        }
+                    });
+            return sampleGeomsByPlot;
+        } else {
+            return new HashMap<String, HashMap<String, JsonObject>>();
+        }
+    }
+
+    private static Double[] getGeometryCentroid(JsonObject geoJsonGeometry) {
+        var coordinates = geoJsonGeometry.get("coordinates").getAsJsonArray();
+        var exteriorRing = coordinates.get(0).getAsJsonArray();
+        var centroidX = toElementStream(exteriorRing)
+            .skip(1) // linear rings repeat the same point as their first and last vertex
+            .mapToDouble(point -> point.getAsJsonArray().get(0).getAsDouble())
+            .average()
+            .getAsDouble();
+        var centroidY = toElementStream(exteriorRing)
+            .skip(1) // linear rings repeat the same point as their first and last vertex
+            .mapToDouble(point -> point.getAsJsonArray().get(1).getAsDouble())
+            .average()
+            .getAsDouble();
+        return new Double[]{centroidX, centroidY};
+    }
+
+    // FIXME: Can you re-implement this using the Collectors functions?
+    private static HashMap<String, Double[]> getPlotGeometryCenters(HashMap<String, JsonObject> plotGeoms) {
+        var plotCenters = new HashMap<String, Double[]>();
+        plotGeoms.entrySet().forEach(plot -> {
+                var plotId = plot.getKey();
+                var plotGeom = plot.getValue();
+                var centroid = getGeometryCentroid(plotGeom);
+                plotCenters.put(plotId, centroid);
+            });
+        return plotCenters;
+    }
+
+    // FIXME: Can you re-implement this using the Collectors functions?
+    private static HashMap<String, HashMap<String, Double[]>> getSampleGeometryCenters(HashMap<String, HashMap<String, JsonObject>> sampleGeomsByPlot) {
+        var sampleCentersByPlot = new HashMap<String, HashMap<String, Double[]>>();
+        sampleGeomsByPlot.entrySet().forEach(plot -> {
+                var plotId = plot.getKey();
+                var sampleGeoms = plot.getValue();
+                var sampleCenters = new HashMap<String, Double[]>();
+                sampleGeoms.entrySet().forEach(sample -> {
+                        var sampleId = sample.getKey();
+                        var sampleGeom = sample.getValue();
+                        var centroid = getGeometryCentroid(sampleGeom);
+                        sampleCenters.put(sampleId, centroid);
+                    });
+                sampleCentersByPlot.put(plotId, sampleCenters);
+            });
+        return sampleCentersByPlot;
+    }
+
     private static synchronized JsonObject createProjectPlots(JsonObject newProject) {
         // Store the parameters needed for plot generation in local variables with nulls set to 0
+        var projectId =          newProject.get("id").getAsInt();
         var lonMin =             getOrZero(newProject,"lonMin").getAsDouble();
         var latMin =             getOrZero(newProject,"latMin").getAsDouble();
         var lonMax =             getOrZero(newProject,"lonMax").getAsDouble();
@@ -744,22 +913,55 @@ public class JsonProjects implements Projects {
         var plotDistribution =   newProject.get("plotDistribution").getAsString();
         var numPlots =           getOrZero(newProject,"numPlots").getAsInt();
         var plotSpacing =        getOrZero(newProject,"plotSpacing").getAsDouble();
-        var plotShape =          newProject.get("plotShape").getAsString();
-        var plotSize =           newProject.get("plotSize").getAsDouble();
+        var plotShape =          getOrEmptyString(newProject,"plotShape").getAsString();
+        var plotSize =           getOrZero(newProject,"plotSize").getAsDouble();
         var sampleDistribution = newProject.get("sampleDistribution").getAsString();
         var samplesPerPlot =     getOrZero(newProject,"samplesPerPlot").getAsInt();
         var sampleResolution =   getOrZero(newProject,"sampleResolution").getAsDouble();
 
         // If plotDistribution is csv, calculate the lat/lon bounds from the csv contents
-        var csvPoints = new Double[][]{};
+        var csvPlotPoints = new HashMap<String, Double[]>();
         if (plotDistribution.equals("csv")) {
-            csvPoints = loadCsvPoints(newProject.get("csv").getAsString());
-            var csvBounds = calculateBounds(csvPoints, plotSize / 2.0);
-            lonMin = csvBounds[0];
-            latMin = csvBounds[1];
-            lonMax = csvBounds[2];
-            latMax = csvBounds[3];
+            csvPlotPoints = loadCsvPlotPoints(newProject.get("plots-csv").getAsString());
+            var csvPlotBounds = calculateBounds(csvPlotPoints.values().toArray(new Double[][]{}), plotSize / 2.0);
+            lonMin = csvPlotBounds[0];
+            latMin = csvPlotBounds[1];
+            lonMax = csvPlotBounds[2];
+            latMax = csvPlotBounds[3];
         }
+
+        // If sampleDistribution is csv, calculate the lat/lon bounds from the csv contents
+        var csvSamplePoints = new HashMap<String, HashMap<String, Double[]>>();
+        if (sampleDistribution.equals("csv")) {
+            csvSamplePoints = loadCsvSamplePoints(newProject.get("samples-csv").getAsString());
+        }
+        final var csvSamplePointsFinal = csvSamplePoints;
+
+        // If plotDistribution is shp, calculate the lat/lon bounds from the shp contents
+        var shpPlotGeoms = new HashMap<String, JsonObject>();
+        var shpPlotCenters = new HashMap<String, Double[]>();
+        if (plotDistribution.equals("shp")) {
+            extractZipFileToGeoJson(projectId, "plots");
+            shpPlotGeoms = getGeoJsonPlotGeometries(projectId);
+            shpPlotCenters = getPlotGeometryCenters(shpPlotGeoms);
+            var shpPlotBounds = calculateBounds(shpPlotCenters.values().toArray(new Double[][]{}), 500.0); // FIXME: replace hard-coded padding with a calculated value
+            lonMin = shpPlotBounds[0];
+            latMin = shpPlotBounds[1];
+            lonMax = shpPlotBounds[2];
+            latMax = shpPlotBounds[3];
+        }
+        final var shpPlotGeomsFinal = shpPlotGeoms;
+
+        // If sampleDistribution is shp, calculate the lat/lon bounds from the shp contents
+        var shpSampleGeoms = new HashMap<String, HashMap<String, JsonObject>>();
+        var shpSampleCenters = new HashMap<String, HashMap<String, Double[]>>();
+        if (sampleDistribution.equals("shp")) {
+            extractZipFileToGeoJson(projectId, "samples");
+            shpSampleGeoms = getGeoJsonSampleGeometries(projectId);
+            shpSampleCenters = getSampleGeometryCenters(shpSampleGeoms);
+        }
+        final var shpSampleGeomsFinal = shpSampleGeoms;
+        final var shpSampleCentersFinal = shpSampleCenters;
 
         // Store the lat/lon bounding box coordinates as GeoJSON and remove their original fields
         newProject.addProperty("boundary", makeGeoJsonPolygon(lonMin, latMin, lonMax, latMax).toString());
@@ -777,28 +979,84 @@ public class JsonProjects implements Projects {
         var top = paddedBounds[3];
 
         // Generate the plot objects and their associated sample points
-        var newPlotCenters = plotDistribution.equals("random") ? createRandomPointsInBounds(left, bottom, right, top, numPlots)
-                                  : plotDistribution.equals("gridded") ? createGriddedPointsInBounds(left, bottom, right, top, plotSpacing)
-                                  : csvPoints;
+        var newPlotCenters =
+            plotDistribution.equals("random") ? createRandomPointsInBounds(left, bottom, right, top, numPlots)
+            : plotDistribution.equals("gridded") ? createGriddedPointsInBounds(left, bottom, right, top, plotSpacing)
+            : plotDistribution.equals("csv") ? csvPlotPoints.entrySet().toArray()
+            : shpPlotCenters.entrySet().toArray();
+
         var plotIndexer = makeCounter();
+
         var newPlots = Arrays.stream(newPlotCenters)
-            .map(plotCenter -> {
+            .map(plotEntry -> {
                     var newPlot = new JsonObject();
-                    newPlot.addProperty("id", plotIndexer.getAsInt());
-                    newPlot.addProperty("center", makeGeoJsonPoint(plotCenter[0], plotCenter[1]).toString());
+                    var newPlotId = plotIndexer.getAsInt();
+                    newPlot.addProperty("id", newPlotId);
                     newPlot.addProperty("flagged", false);
                     newPlot.addProperty("analyses", 0);
                     newPlot.add("user", null);
 
-                    var newSamplePoints = sampleDistribution.equals("gridded")
-                        ? createGriddedSampleSet(plotCenter, plotShape, plotSize, sampleResolution)
-                        : createRandomSampleSet(plotCenter, plotShape, plotSize, samplesPerPlot);
+                    var plotId =
+                        List.of("csv", "shp").contains(plotDistribution)
+                        ? (String) ((Map.Entry) plotEntry).getKey()
+                        : "";
+
+                    var plotCenter =
+                        List.of("csv", "shp").contains(plotDistribution)
+                        ? (Double[]) ((Map.Entry) plotEntry).getValue()
+                        : (Double[]) plotEntry;
+
+                    newPlot.addProperty("center", makeGeoJsonPoint(plotCenter[0], plotCenter[1]).toString());
+
+                    if (List.of("csv", "shp").contains(plotDistribution)) {
+                        newPlot.addProperty("plotId", plotId);
+                    }
+
+                    if (plotDistribution.equals("shp")) {
+                        newPlot.addProperty("geom", shpPlotGeomsFinal.get(plotId).toString());
+                    }
+
+                    var newSamplePoints =
+                        sampleDistribution.equals("random")
+                        ? (List.of("random", "gridded").contains(plotDistribution)
+                           ? createRandomSampleSet(plotCenter, plotShape, plotSize, samplesPerPlot)
+                           : new Double[][]{plotCenter})
+                        : (sampleDistribution.equals("gridded")
+                           ? (List.of("random", "gridded").contains(plotDistribution)
+                              ? createGriddedSampleSet(plotCenter, plotShape, plotSize, sampleResolution)
+                              : new Double[][]{plotCenter})
+                           : (sampleDistribution.equals("csv")
+                              ? csvSamplePointsFinal.get(plotId).entrySet().toArray()
+                              : shpSampleCentersFinal.get(plotId).entrySet().toArray()));
+
                     var sampleIndexer = makeCounter();
+
                     var newSamples = Arrays.stream(newSamplePoints)
-                        .map(point -> {
+                        .map(sampleEntry -> {
                                 var newSample = new JsonObject();
-                                newSample.addProperty("id", sampleIndexer.getAsInt());
-                                newSample.addProperty("point", makeGeoJsonPoint(point[0], point[1]).toString());
+                                var newSampleId = sampleIndexer.getAsInt();
+                                newSample.addProperty("id", newSampleId);
+
+                                var sampleId =
+                                    List.of("csv", "shp").contains(sampleDistribution)
+                                    ? (String) ((Map.Entry) sampleEntry).getKey()
+                                    : "";
+
+                                var sampleCenter =
+                                    List.of("csv", "shp").contains(sampleDistribution)
+                                    ? (Double[]) ((Map.Entry) sampleEntry).getValue()
+                                    : (Double[]) sampleEntry;
+
+                                newSample.addProperty("point", makeGeoJsonPoint(sampleCenter[0], sampleCenter[1]).toString());
+
+                                if (List.of("csv", "shp").contains(sampleDistribution)) {
+                                    newSample.addProperty("sampleId", sampleId);
+                                }
+
+                                if (sampleDistribution.equals("shp")) {
+                                    newSample.addProperty("geom", shpSampleGeomsFinal.get(plotId).get(sampleId).toString());
+                                }
+
                                 return newSample;
                             })
                         .collect(intoJsonArray);
@@ -827,10 +1085,10 @@ public class JsonProjects implements Projects {
 
             // Read the input fields into a new JsonObject (NOTE: fields will be camelCased)
             var newProject = partsToJsonObject(req,
-                                               new String[]{"institution", "privacy-level", "lon-min", "lon-max", "lat-min",
-                                                            "lat-max", "base-map-source", "plot-distribution", "num-plots",
-                                                            "plot-spacing", "plot-shape", "plot-size", "sample-distribution",
-                                                            "samples-per-plot", "sample-resolution", "sample-values"});
+                    new String[]{"institution", "privacy-level", "lon-min", "lon-max", "lat-min",
+                            "lat-max", "base-map-source", "plot-distribution", "num-plots",
+                            "plot-spacing", "plot-shape", "plot-size", "sample-distribution",
+                            "samples-per-plot", "sample-resolution", "sample-values"});
 
             // Manually add the name and description fields since they may be invalid JSON
             newProject.addProperty("name", partToString(req.raw().getPart("name")));
@@ -846,37 +1104,46 @@ public class JsonProjects implements Projects {
             // Upload the plot-distribution-csv-file if one was provided
             if (newProject.get("plotDistribution").getAsString().equals("csv")) {
                 var csvFileName = writeFilePart(req,
-                                                "plot-distribution-csv-file",
-                                                expandResourcePath("/csv"),
-                                                "project-" + newProjectId);
-                newProject.addProperty("csv", csvFileName);
+                        "plot-distribution-csv-file",
+                        expandResourcePath("/csv"),
+                        "project-" + newProjectId + "-plots");
+                newProject.addProperty("plots-csv", csvFileName);
             } else {
-                newProject.add("csv", null);
+                newProject.add("plots-csv", null);
             }
 
-            // Add ids to the sampleValueGroups and sampleValues and clean up some of their unnecessary fields
-            var sampleValueGroups = newProject.get("sampleValues").getAsJsonArray();
-            var sampleValueGroupIndexer = makeCounter();
-            var updatedSampleValueGroups = mapJsonArray(sampleValueGroups,
-                                                        sampleValueGroup -> {
-                                                            sampleValueGroup.addProperty("id", sampleValueGroupIndexer.getAsInt());
-                                                            sampleValueGroup.remove("$$hashKey");
-                                                            sampleValueGroup.remove("object");
-                                                            var sampleValues = sampleValueGroup.get("values").getAsJsonArray();
-                                                            var sampleValueIndexer = makeCounter();
-                                                            var updatedSampleValues = mapJsonArray(sampleValues,
-                                                                                                   sampleValue -> {
-                                                                                                       sampleValue.addProperty("id", sampleValueIndexer.getAsInt());
-                                                                                                       sampleValue.remove("$$hashKey");
-                                                                                                       sampleValue.remove("object");
-                                                                                                       // FIXME: Remove the "image" field from the database
-                                                                                                       sampleValue.add("image", null);
-                                                                                                       return sampleValue;
-                                                                                                   });
-                                                            sampleValueGroup.add("values", updatedSampleValues);
-                                                            return sampleValueGroup;
-                                                        });
-            newProject.add("sampleValues", updatedSampleValueGroups);
+            // Upload the sample-distribution-csv-file if one was provided
+            if (newProject.get("sampleDistribution").getAsString().equals("csv")) {
+                var csvFileName = writeFilePart(req,
+                        "sample-distribution-csv-file",
+                        expandResourcePath("/csv"),
+                        "project-" + newProjectId + "-samples");
+                newProject.addProperty("samples-csv", csvFileName);
+            } else {
+                newProject.add("samples-csv", null);
+            }
+
+            // Upload the plot-distribution-shp-file if one was provided (this should be a ZIP file)
+            if (newProject.get("plotDistribution").getAsString().equals("shp")) {
+                var shpFileName = writeFilePart(req,
+                                                "plot-distribution-shp-file",
+                                                expandResourcePath("/shp"),
+                                                "project-" + newProjectId + "-plots");
+                newProject.addProperty("plots-shp", shpFileName);
+            } else {
+                newProject.add("plots-shp", null);
+            }
+
+            // Upload the sample-distribution-shp-file if one was provided (this should be a ZIP file)
+            if (newProject.get("sampleDistribution").getAsString().equals("shp")) {
+                var shpFileName = writeFilePart(req,
+                                                "sample-distribution-shp-file",
+                                                expandResourcePath("/shp"),
+                                                "project-" + newProjectId + "-samples");
+                newProject.addProperty("samples-shp", shpFileName);
+            } else {
+                newProject.add("samples-shp", null);
+            }
 
             // Add some missing fields that don't come from the web UI
             newProject.addProperty("archived", false);
