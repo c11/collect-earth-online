@@ -1,16 +1,19 @@
 [
 	{
 	    "projectId": 1,
-	    "plotId": 1,
+		"plotId": 1,
+		"packet": -1,
+		"userId": 1,
+		"userName": "admin@openforis.org",
 	    "isExample": 0,
-	    "isComplete": 0,
+		"isComplete": 0,
 	    "timeSync": [
 		    {
 			    "imageYear": 1985,
 			    "imageJulday": 215,
 			    "imageID": "",
 			    "isVertex": true,
-			    "VertexInfo": {
+			    "vertexInfo": {
 			    	"landUse": {
                         "primary": {
                             "landUse": "Forest",
@@ -31,7 +34,7 @@
                             	"orchardTreeFarm": false,
                             	"vineyardsOtherWoody": false
                             }
-                        },
+                        }
                     },
                     "landCover": {
                     	"landCover": "trees",
