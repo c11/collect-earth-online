@@ -1,0 +1,67 @@
+[
+	{
+	    "projectId": 1,
+	    "plotId": 1,
+	    "isExample": 0,
+	    "isComplete": 0,
+	    "timeSync": [
+		    {
+			    "imageYear": 1985,
+			    "imageJulday": 215,
+			    "imageID": "",
+			    "isVertex": true,
+			    "VertexInfo": {
+			    	"landUse": {
+                        "primary": {
+                            "landUse": "Forest",
+                            "note": {
+                            	"wetland": false,
+                            	"mining": false,
+                            	"rowCrop": false,
+                            	"orchardTreeFarm": false,
+                            	"vineyardsOtherWoody": false
+                            }
+                        },
+                        "secondary": {
+                            "landUse": "Forest",
+                            "note": {
+                            	"wetland": false,
+                            	"mining": false,
+                            	"rowCrop": false,
+                            	"orchardTreeFarm": false,
+                            	"vineyardsOtherWoody": false
+                            }
+                        },
+                    },
+                    "landCover": {
+                    	"landCover": "trees",
+                        "notes": {
+                        	"trees": false,
+                        	"shrubs": false,
+                        	"grassForbHerb": false,
+                        	"impervious": false,
+                        	"naturalBarren": false,
+                        	"snowIce": false,
+                        	"water": false
+                        }
+                    },
+                    "changeProcess": {
+                        "changeProcess": "",
+                        "notes": {
+                        	"natural": false,
+                        	"prescribed": false,
+                        	"sitePrepFire": false,
+                        	"airphotoOnly": false,
+                        	"clearcut": false,
+                        	"thinning": false,
+                        	"flooding": false,
+                        	"reserviorLakeFlux": false,
+                        	"wetlandDrainage": false
+                        }
+                    }
+			    }
+		    }
+	    ],
+	    "comment": ""
+	}
+]
