@@ -137,6 +137,7 @@
                     <li id="NBR">NBR</li>
                 </ul>
             </div>
+            <!-- Yang: Hide chip selection: only use TC for now.
             <div class="btn-group specPlotDrop" role="group">
                 <button id="btnChipSet" class="btn btn-default dropdown-toggle specPlotBtn" type="button">
                     <div><strong>Chip Set</strong>:<br><small>SWIR2,NIR,Red</small><span class="caret specPlot"></span></div>
@@ -147,6 +148,7 @@
                     <li id="chipSet432">NIR,Red,Green</li>
                 </ul>
             </div>
+
             <div id="btnRed" class="btn-group specPlotDrop" role="group" style="display:none">
                 <button class="btn btn-default dropdown-toggle specPlotBtn" type="button">
                     <div><strong>R</strong><small>GB</small>:<br><small>TC Brightness</small><span class="caret specPlot"></span></div>
@@ -204,6 +206,7 @@
                     <li href="#" id="NBR">NBR</li>
                 </ul>
             </div>
+            -->
             <div class="btn-group" role="group">
                 <button id="btnLine" class="btn btn-default specPlotBtn" type="button">
                     <Strong>Show Line</strong><br><span id="lineDisplayThumb" class="glyphicon glyphicon-thumbs-up" aria-hidden="true"></span>
