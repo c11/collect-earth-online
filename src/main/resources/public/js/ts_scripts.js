@@ -3216,7 +3216,7 @@ function makeChipInfo(selection, origData){
             var src = {chipSetBGW: getImageChip(origData[i].iid)}
                 // chipSet743:origData[i].url_743,
                 // chipSet432:origData[i].url_432}
-            var sensor = origData[i].sensor
+            var sensor = origData[i].iid.substring(8, 12);
         }
         //define/store some other info needed for zooming
         //chipInfo.chipsInStrip.push(thisManyChips);
