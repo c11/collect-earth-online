@@ -234,13 +234,17 @@ svg{
     border: 3px solid #32CD32;
 }
 
-.expandChipYear{
+.previousChip, .nextChip, .expandChipYear{
     visibility: hidden;
     cursor: pointer;
 }
 
-.chipHolder:hover .expandChipYear{
+.chipHolder:hover .previousChip, 
+.chipHolder:hover .nextChip {
     visibility: visible;
+}
+.chipHolder:hover .expandChipYear {
+    visibility: hidden;
 }
 
 /*#################################################################################################*/

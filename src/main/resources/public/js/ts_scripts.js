@@ -146,7 +146,8 @@ function parseSpectralData(origData,i){
         "B4":parseInt(origData[i].B4)/10000,
         "B5":parseInt(origData[i].B5)/10000,
         "B7":parseInt(origData[i].B7)/10000,
-        "cloud_cover": parseInt(origData[i].cfmask)
+        "cloud_cover": parseInt(origData[i].cfmask),
+        "iid": origData[i].iid
     }
     return vertInfoSpec
 }
@@ -3463,7 +3464,15 @@ function drawOneChip(thisChip, window){
     img.src = timgID.src;
 
     if(window == "annual"){
-        $(".chipDate").eq(thisChip).empty().append(chipInfo.year[thisChip]+"-"+chipInfo.julday[thisChip]+" "+chipInfo.sensor[thisChip]+'<span class="glyphicon glyphicon-new-window expandChipYear" aria-hidden="true" style="float:right; margin-right:5px"></span>')
+        $(".chipDate").eq(thisChip).empty().append(
+                '<span class="glyphicon glyphicon-triangle-left previousChip" aria-hidden="true" style="float:left; margin-left:5px"></span>'
+                + chipInfo.year[thisChip]+"-"+chipInfo.julday[thisChip] 
+                + " "
+                + chipInfo.sensor[thisChip]
+                + '<span class="glyphicon glyphicon-new-window expandChipYear" aria-hidden="true" style="float:right; margin-right:5px"></span>'
+                + '<span class="glyphicon glyphicon-triangle-right nextChip" aria-hidden="true" style="float:right; margin-right:5px"></span>'
+            );
+            
         if($("#toolTipsCheck").hasClass("glyphicon glyphicon-ok")){
             $("span.expandChipYear").prop("title","This is intra-annual image chip window icon. Clicking it will open a new window and/or load all image chips for the year. In the intra-annual image chip window, all chips have a corresponding intra-annual spectral point in the time series plot. Hovering over any of the image chips while the Show Points (show intra-annual points) toggle is active (thumbs up), the corresponding point will be highlighted in blue. This will help you make a decision about which point is best suited to represent the year. Clicking on any of the image chips will set that chip as the new data for the year. The data will immediately change in the main chip gallery and in the spectral time series plot.")
         }
@@ -3550,10 +3559,80 @@ $(document).on("mousewheel",".chipImg",function(e){ //canvas.annual
     }
 });
 
+/** helper function to find the immediate neighboring image */
+function getNextImage(dataArray, target, direction) {
+    let candidate = dataArray.findIndex(d => d.Year === target.Year && d.doy === target.doy);
+    //find the next one
+    if (direction === 'next') {
+        if (candidate < dataArray.length-1) {
+            result = dataArray[candidate+1]
+            //only return image from the same year
+            return result.Year === target.Year ? {...result} : null; 
+        }
+    }
+    else {
+        if (candidate>0) {
+            result = dataArray[candidate-1]
+            //only return image from the same year
+            return result.Year === target.Year ? {...result} : null; 
+        }
+    }
+    return null
+}
 
+/////////////////// GET NEXT OR PREVIOUS CHIP /////////////////////
+$("body").on("click", ".previousChip, .nextChip", function(e){ //need to use body because the canvases have probably not loaded yet
+    let direction = $(this).hasClass('nextChip') ? 'next' : 'previous';
+    let thisIndex = direction === 'next' ? $(".nextChip").index(this) : $(".previousChip").index(this);
+
+     //get information for current image chip
+    let target = data.Values[thisIndex];
+    //get the next available image
+    let candidate = getNextImage(allData.Values, target, direction);
+
+    //TODO: no candidate image, need to inform user.
+    if (candidate === null) return;
+
+    //now replace the image chip
+    let	message = {
+        "action":"replace_chip",
+        "newSyOffset":0, //tell the origin where to set the original offset for the chip
+        "originChipIndex":thisIndex, //tell the origin which chip to set the original offset for (index)
+        "useThisChip":0, //canvasIDindex,//tell the origin what chip to use instead
+        "src":{
+            // chipSet432:origData[canvasIDindex].url_432,
+            // chipSet743:origData[canvasIDindex].url_743,
+            chipSetBGW: getImageChip(candidate.iid)
+        },
+        "data": candidate
+    };
+
+    //capture info to send to the server
+    var oldDOY = target.doy
+    var newDOY = candidate.doy
+
+    //fill in the data for the new image selection
+    data.Values[thisIndex] = candidate;
+    chipInfo.src[thisIndex]= {...message.src};
+    chipInfo.julday[thisIndex]=candidate.doy;
+
+    //TODO: (YANG) this implementation is awkard!
+    //replace the chip
+    replaceChip(message); //replace a chip with one selected in the remote window
+
+    //prepare the color for the new selection
+    rgbColor = scaledRGB(data, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, n_chips);
+
+    //change the spectral plot
+    changePlotPoint();
+
+    //save the new image selection to the server so it will be the default in the future
+    //TODO: NEXT HERE!!!!
+    changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].Year, newDOY=newDOY, oldDOY=oldDOY) //changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].Year, newDOY=remoteMessage.julday, oldDOY=data.Values[remoteMessage.originChipIndex].doy)
+
+});
 
 ///////////////////OPEN THE REMOTE CHIP STRIP WINDOW AND SEND MESSAGES/////////////////////
-
 //var originURL = null;
 $("body").on("click", ".expandChipYear, .data", function(e){ //need to use body because the canvases have probably not loaded yet
     var nodeType = $(this).prop('nodeName');
