@@ -18,7 +18,6 @@
     <script>
         var userID = ${interpreter};
         var authHeader = "authHeader";
-        var tsDashMessage = new URLSearchParams(window.location.search).keys().next().value;
     </script>
 </head>
 <body>

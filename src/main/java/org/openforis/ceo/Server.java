@@ -95,6 +95,7 @@ public class Server implements SparkApplication {
         get("/password-reset",                        Views.passwordReset(freemarker));
         get("/card-test",                             Views.cardTest(freemarker));
         get("/timesync/:id",                          Views.timeSync(freemarker));
+        // get("/timesync-dash",                         Views.timeSyncDash(freemarker));
 
         // Routing Table: HTML pages (with side effects)
         post("/account/:id",                          (req, res) -> Views.account(freemarker).handle(users.updateAccount(req, res), res));

@@ -13,6 +13,7 @@
      collection.renderCollectionPage({
          documentRoot: "${root}",
          userName:     "${username}",
+         userId:       "${userid}",
          projectId:    "${project_id}"
      });
  };

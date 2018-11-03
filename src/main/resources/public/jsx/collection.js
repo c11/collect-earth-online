@@ -350,7 +350,15 @@ class Collection extends React.Component {
     }
 
     showTimeSync(plot) {
+        const message = {
+            "projectID": this.props.projectId,
+            "plotID": plot.id,
+            "currentLocation": plot.center
+        }
 
+        window.open(this.props.documentRoot + `/timesync/${this.props.userId}?`
+                    + encodeURIComponent(JSON.stringify(message)),
+                    "_timesync-dash");
     }
 
     nextPlot() {
@@ -863,7 +871,7 @@ function QuitMenu(props) {
 
 export function renderCollectionPage(args) {
     ReactDOM.render(
-        <Collection documentRoot={args.documentRoot} userName={args.userName} projectId={args.projectId}/>,
+        <Collection documentRoot={args.documentRoot} userId={args.userId} userName={args.userName} projectId={args.projectId}/>,
         document.getElementById("collection")
     );
 }

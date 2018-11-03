@@ -121,6 +121,7 @@ public class Views {
 
     public static Route collection(FreeMarkerEngine freemarker) {
         Function<Request, String> getProjectId = (req) -> req.params(":id");
+        // Function<Request, String> getUserId = (req) -> req.session().attribute("userid");
         return makeRoute("Collection", freemarker,
                          Map.of("project_id", getProjectId));
     }
@@ -182,6 +183,12 @@ public class Views {
         return makeAuthenticatedRoute("TimeSync", freemarker,
                 Map.of("interpreter", getAccountId));
     }
+    
+    // public static Route timeSyncDash(FreeMarkerEngine freemarker) {
+    //     Function<Request, String> getAccountId = (req) -> ""; //req.params(":id");
+    //     return makeAuthenticatedRoute("TimeSync", freemarker,
+    //             Map.of("interpreter", getAccountId));
+    // }
 
     public static Route pageNotFound(FreeMarkerEngine freemarker) {
         return makeRoute("Page-Not-Found", freemarker);
