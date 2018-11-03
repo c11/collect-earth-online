@@ -1073,6 +1073,9 @@ public class JsonProjects implements Projects {
         newProject.addProperty("numPlots", newPlots.size());
         newProject.addProperty("samplesPerPlot", newPlots.get(0).getAsJsonObject().getAsJsonArray("samples").size());
 
+        // create TimeSync file for the project timesync-data-<id>.json file
+        writeJsonFile("timesync-data-" + newProject.get("id").getAsString() + ".json", new JsonObject());
+
         // Return the updated project object
         return newProject;
     }

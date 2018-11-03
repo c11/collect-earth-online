@@ -47,6 +47,11 @@ public class JsonUtils {
 
     public static JsonElement readJsonFile(String filename) {
         var jsonDataDir = expandResourcePath("/json/");
+        //create the file if not already exists
+        if (!new File(jsonDataDir, filename).exists()) {
+            writeJsonFile(filename, new JsonArray());
+        }
+
         try (var fileReader = new FileReader(new File(jsonDataDir, filename))) {
             return (new JsonParser()).parse(fileReader);
         } catch (Exception e) {
@@ -132,6 +137,13 @@ public class JsonUtils {
         var array = readJsonFile(filename).getAsJsonArray();
         var updatedArray = filterJsonArray(array, predicate);
         writeJsonFile(filename, updatedArray);
+    }
+
+    // Note: The JSON file must contain an array of objects.
+    public static void addElementToJsonFile(String filename, JsonElement element) {
+        var array = readJsonFile(filename).getAsJsonArray();
+        array.add(element);
+        writeJsonFile(filename, array);
     }
 
     private static JsonElement walkJsonPath(JsonElement currentEl, String path, LinkedList<String> pathParts) {

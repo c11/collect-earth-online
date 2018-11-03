@@ -73,11 +73,13 @@ var ylabel = "";
 var yearList = [];
 
 var sessionInfo = {
-    "userID":userID,
+    "userID": userID,
+    "userName": userName,
     "projectID":"",
     "projectCode":"",
     "tsa":"999999",
-    "plotID":"",
+    "plotID": "",
+    "packet": -1,
     "isDirty":false,
     "plotSize":1,
     //TSCEO workaround for CEO API.
@@ -145,12 +147,13 @@ function getUrls(sessionInfo, year){
         "selectedSpec": `${geeServer}/ts/spectrals/day/${sessionInfo.tsTargetDay}/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}`,
         "projectList":  `${tsServer}/get-all-projects`,
         "plotList":     `${tsServer}/get-project-plots/${sessionInfo.projectID}/${sessionInfo.numPlots}`,
+        "vertInfoSave": `${tsServer}/timesync/vertex/save`,
 
         "plotInterp":   osuServer + '/index.php/vertex/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,
         "plotComment":  osuServer + '/comment/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,
         "respDesign":   osuServer + '/config/response/'+sessionInfo.projectID,
         "chipOverRide": osuServer + '/image/override',
-        "vertInfoSave": osuServer + '/vertex/save',
+        // "vertInfoSave": osuServer + '/vertex/save',
         "commentSave":  osuServer + '/comment/save'
     }
     return urls;
@@ -158,8 +161,8 @@ function getUrls(sessionInfo, year){
 
 function parseSpectralData(origData,i){
     var vertInfoSpec = {
-        "Year":origData[i].image_year,
-        "doy":origData[i].image_julday,
+        "image_year":origData[i].image_year,
+        "image_julday":origData[i].image_julday,
         "B1":parseInt(origData[i].B1)/10000,
         "B2":parseInt(origData[i].B2)/10000,
         "B3":parseInt(origData[i].B3)/10000,
@@ -276,8 +279,7 @@ function getData(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,a
                 } else{
                     selectThese = [0,lastIndex]
                     for(var i=0;i<selectThese.length;i++){
-                        vertInfo.push({year:origData[selectThese[i]].image_year,julday:origData[selectThese[i]].image_julday,index:selectThese[i],landUse:{
-                                //dominant:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}
+                        vertInfo.push({image_year:origData[selectThese[i]].image_year,image_julday:origData[selectThese[i]].image_julday,index:selectThese[i],iid:origData[selectThese[i]].iid,isVertex:true,landUse:{
                                 primary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}},
                                 secondary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}}
                             },landCover:{landCover:"",other:{trees:false,shrubs:false,grassForbHerb:false,impervious:false,naturalBarren:false,snowIce:false,water:false}},changeProcess:{changeProcess:"",notes:{natural:false,prescribed:false,sitePrepFire:false,airphotoOnly:false,clearcut:false,thinning:false,flooding:false,reserviorLakeFlux:false,wetlandDrainage:false}}})
@@ -308,6 +310,7 @@ function addProjectData(sessionInfo){
     }
     $.getJSON(getUrls(sessionInfo).projectList).done(function(object){
         console.log(object);
+        packetInfo = {};
         for(var i=0;i<object.length;i++){
             /*TSCEO
                 1. add ts_plot_size, ts_target_day, ts_start_year, ts_end_year
@@ -345,13 +348,20 @@ $('#commentInput').keypress(function(){
     sessionInfo.isDirty = true;
 });
 
+//TODO: TSCEO export timesync data
 $('#exportBtn').click(function(event) {
-    var target = 'exportts.php?t=' + authHeader + '&pid=' + sessionInfo.projectID + '&uid=' + sessionInfo.userID;
-    if (sessionInfo.projectID == '') {
-        return;
-    }
-    window.location.href=target;
+    return;
+    // var target = 'exportts.php?t=' + authHeader + '&pid=' + sessionInfo.projectID + '&uid=' + sessionInfo.userID;
+    // if (sessionInfo.projectID == '') {
+    //     return;
+    // }
+    // window.location.href=target;
 });
+
+$('#syncWithCEO').click(function(event) {
+    console.log(vertInfo);
+});
+
 
 //if the isExampleCheckbox is altered, then the session is dirty and should be saved, also the class of the #plotList li.selected needs to be updated
 $('#isExampleCheckbox').change(function(){
@@ -366,7 +376,6 @@ $('#isExampleCheckbox').change(function(){
     if($("#examplePlots").prop("checked") == true){
         showHideExamples();
     }
-
 });
 
 //listener/action for when a project is clicked on - append plots to the plot list for that project
@@ -582,8 +591,9 @@ $("body").on("click", "#plotList li", function(e){
 
     //get and set the sessionInfo.plotID
     var index = $("#plotList li").index($(this));
-    sessionInfo.plotID = $(this).text()
+    sessionInfo.plotID = $(this).text().trim();
     sessionInfo.currentLocation = $(this).data().center;
+    sessionInfo.packet = $(this).data().packet;
 
     currentDomain = getSetting(sessionInfo.projectID, sessionInfo.plotID, defaultDomain)
     currentDomain.dirty = 0; //need to reset this since it is "clean" now
@@ -967,7 +977,7 @@ function plotInt(){
 
     //show doy on hover
     allCircles.on("mouseover", function(d){
-        doyTxt.text(d.doy)
+        doyTxt.text(d.image_julday)
             .attr("x", xscale(d.decDate))
             .attr("y", yscale(d[specIndex]) - 10)
             .style("opacity", 1);
@@ -978,7 +988,7 @@ function plotInt(){
 
     //show doy on hover
     circles.on("mouseover", function(d){
-        doyTxt.text(d.doy)
+        doyTxt.text(d.image_julday)
             .attr("x", xscale(d.decDate))
             .attr("y", yscale(d[specIndex]) - 20)
             .style("opacity", 1);
@@ -1335,13 +1345,13 @@ function leapYear(year){
 
 function calcDecDate(trajData){
     for(var i=0;i<trajData.Values.length;i++){
-        var thisYear = trajData.Values[i].Year;
+        var thisYear = trajData.Values[i].image_year;
         if(leapYear(thisYear)){
             var n_days = 367
         } else{
             var n_days = 366
         }
-        var decDate = thisYear + (trajData.Values[i].doy/n_days);
+        var decDate = thisYear + (trajData.Values[i].image_julday/n_days);
         trajData.Values[i]["decDate"] = decDate
     }
     return trajData
@@ -1509,7 +1519,7 @@ $(window).on("beforeunload", function(){ //catches exist buttons
 })
 
 //function to prepare vert info to be posted to the server
-function saveVertInfo(sessionInfo, vertInfo){
+function saveVertInfoOSU(sessionInfo, vertInfo){
     //first deal with the vertInfo
     //package up the vert info
     if(typeof vertInfo === 'undefined' | sessionInfo.projectID == "" | sessionInfo.plotID == "" ){return}
@@ -1563,6 +1573,57 @@ function saveVertInfo(sessionInfo, vertInfo){
     sessionInfo.isDirty = false;
     //} //end bracket for if(commentText != "")
 }
+
+//function to prepare vert info to be posted to the server
+function saveVertInfo(sessionInfo, vertInfo){
+    //first deal with the vertInfo
+    //package up the vert info
+    if(typeof vertInfo === 'undefined' | sessionInfo.projectID == "" | sessionInfo.plotID == "" ){return}
+
+    if (!sessionInfo.isDirty) {
+        return;
+    }
+
+    let tsSave = {
+        projectId: sessionInfo.projectID,
+        plotId: sessionInfo.plotID,
+        packet: -1, //always -1 for current implementation.
+        userId: sessionInfo.userID,
+        userName: sessionInfo.userName,
+        isExample: $("#isExampleCheckbox").prop("checked") == true ? 1:0,
+        isComplete: checkPlot(sessionInfo, vertInfo) == true ? 1:0,
+        comment: $("#commentInput").val()
+    }
+    
+    let timeSync = origData.map(d => {
+        let dv = _.find(vertInfo, v => v.image_year===d.image_year && v.image_julday === d.image_julday)
+        if (dv === undefined) return {...d};
+        let info = _.pick(dv, ['landUse', 'landCover', 'changeProcess', 'isVertex']);
+        return {...d, ..._.cloneDeep(info)};
+    })
+
+    tsSave.timeSync = timeSync;
+
+    //NOW Save it
+    fetch(getUrls(sessionInfo).vertInfoSave, {
+        method: "post",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(tsSave)
+    })
+    .then(response => {
+        if (response.ok) {
+            sessionInfo.isDirty = false;
+        }
+        else {
+            console.log(response);
+            alert("Error saving TimeSync interpretation.");
+        }
+    });
+}
+
 
 //saves the form info to the server
 $("#saveBtn").click(function(){
@@ -2245,9 +2306,11 @@ function updateSegmentForm(seriesIndex, addRemove){
 
         //make a vertInfo object to splice into the vertInfo array
         var spliceVertInfo = {
-            year:data.Values[seriesIndex].Year, //fill in for the selected point
-            julday:data.Values[seriesIndex].doy,
+            image_year:data.Values[seriesIndex].image_year, //fill in for the selected point
+            image_julday:data.Values[seriesIndex].image_julday,
             index:seriesIndex, //fill in for the selected point
+            iid: data.Values[seriesIndex].iid,
+            isVertex: true,
             landUse:{
                 primary:{
                     landUse:"",
@@ -2780,20 +2843,20 @@ $(document).on("mousewheel",".chipImg",function(e){ //canvas.annual
 
 /** helper function to find the immediate neighboring image */
 function getNextImage(dataArray, target, direction) {
-    let candidate = dataArray.findIndex(d => d.Year === target.Year && d.doy === target.doy);
+    let candidate = dataArray.findIndex(d => d.image_year === target.image_year && d.image_julday === target.image_julday);
     //find the next one
     if (direction === 'next') {
         if (candidate < dataArray.length-1) {
             result = dataArray[candidate+1]
             //only return image from the same year
-            return result.Year === target.Year ? {...result} : null; 
+            return result.image_year === target.image_year ? {...result} : null; 
         }
     }
     else {
         if (candidate>0) {
             result = dataArray[candidate-1]
             //only return image from the same year
-            return result.Year === target.Year ? {...result} : null; 
+            return result.image_year === target.image_year ? {...result} : null; 
         }
     }
     return null
@@ -2827,13 +2890,13 @@ $("body").on("click", ".previousChip, .nextChip", function(e){ //need to use bod
     };
 
     //capture info to send to the server
-    var oldDOY = target.doy
-    var newDOY = candidate.doy
+    var oldDOY = target.image_julday;
+    var newDOY = candidate.image_julday
 
     //fill in the data for the new image selection
     data.Values[thisIndex] = candidate;
     chipInfo.src[thisIndex]= {...message.src};
-    chipInfo.julday[thisIndex]=candidate.doy;
+    chipInfo.julday[thisIndex]=candidate.image_julday;
 
     //TODO: (YANG) this implementation is awkard!
     //replace the chip
@@ -2847,7 +2910,7 @@ $("body").on("click", ".previousChip, .nextChip", function(e){ //need to use bod
 
     //save the new image selection to the server so it will be the default in the future
     //TODO: NEXT HERE!!!!
-    changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].Year, newDOY=newDOY, oldDOY=oldDOY) //changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].Year, newDOY=remoteMessage.julday, oldDOY=data.Values[remoteMessage.originChipIndex].doy)
+    changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].image_year, newDOY=newDOY, oldDOY=oldDOY) //changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].Year, newDOY=remoteMessage.julday, oldDOY=data.Values[remoteMessage.originChipIndex].doy)
 
 });
 
@@ -2956,14 +3019,14 @@ $(window).on("message onmessage",function(e){
 
     if(remoteMessage.action == "replace_chip"){
         //capture info to send to the server
-        var oldDOY = data.Values[remoteMessage.originChipIndex].doy
-        var newDOY = remoteMessage.data.doy
+        var oldDOY = data.Values[remoteMessage.originChipIndex].image_julday
+        var newDOY = remoteMessage.data.image_julday
 
         //fill in the data for the new image selection
         data.Values[remoteMessage.originChipIndex] = remoteMessage.data;
         data = calcDecDate(data);
         chipInfo.src[remoteMessage.originChipIndex]=remoteMessage.src;
-        chipInfo.julday[remoteMessage.originChipIndex]=remoteMessage.data.doy //.julday; //newDOY
+        chipInfo.julday[remoteMessage.originChipIndex]=remoteMessage.data.image_julday //.julday; //newDOY
 
         //replace the chip
         replaceChip(remoteMessage); //replace a chip with one selected in the remote window
@@ -2975,7 +3038,7 @@ $(window).on("message onmessage",function(e){
         changePlotPoint();
 
         //save the new image selection to the server so it will be the default in the future
-        changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].Year, newDOY=newDOY, oldDOY=oldDOY) //changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].Year, newDOY=remoteMessage.julday, oldDOY=data.Values[remoteMessage.originChipIndex].doy)
+        changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].image_year, newDOY=newDOY, oldDOY=oldDOY) //changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].Year, newDOY=remoteMessage.julday, oldDOY=data.Values[remoteMessage.originChipIndex].doy)
 
     } else if(remoteMessage.action == "zoom"){
         chipDisplayProps = remoteMessage.chipDisplayProps

@@ -17,6 +17,7 @@
 
     <script>
         var userID = ${interpreter};
+        var userName = "${username}";
         var authHeader = "authHeader";
         var tsDashMessage = new URLSearchParams(window.location.search).keys().next().value;
     </script>
@@ -101,7 +102,7 @@
 
     <div style="display:inline-block">
         <label class="switch switch-left-right">
-            <button>
+            <button id="syncWithCEO">
                 Sync with Collect Earth Online
             </button>
         </label>
@@ -417,7 +418,7 @@
         <li id="fillCancel">Cancel</li>
     </ul>
 </div>
-
+<script type="text/javascript" src="${root}/js/lodash.min.js"></script>
 <script type="text/javascript" src="${root}/js/ts_scripts.js"></script>
 <script type="text/javascript" src="${root}/js/ts_tooltips.js"></script>
 </body>

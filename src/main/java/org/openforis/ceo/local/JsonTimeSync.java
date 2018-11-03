@@ -1,8 +1,10 @@
 package org.openforis.ceo.local;
 
 import static javax.servlet.http.HttpServletResponse.SC_NO_CONTENT;
+import static org.openforis.ceo.utils.JsonUtils.addElementToJsonFile;
 import static org.openforis.ceo.utils.JsonUtils.expandResourcePath;
 import static org.openforis.ceo.utils.JsonUtils.filterJsonArray;
+import static org.openforis.ceo.utils.JsonUtils.filterJsonFile;
 import static org.openforis.ceo.utils.JsonUtils.findInJsonArray;
 import static org.openforis.ceo.utils.JsonUtils.flatMapJsonArray;
 import static org.openforis.ceo.utils.JsonUtils.getNextId;
@@ -106,18 +108,16 @@ public class JsonTimeSync implements TimeSync {
         var projectId = jsonInputs.get("projectId").getAsString();
         var plotId = jsonInputs.get("plotId").getAsString();
         var userName = jsonInputs.get("userId").getAsString();
-        // var timeSync = jsonInputs.get("timeSync").getAsJsonObject();
+        var packet = jsonInputs.get("packet").getAsString();
 
-        mapJsonFile("timesync-data-" + projectId + ".json",
-                plot -> {
-                    if (plot.get("plotId").getAsString().equals(plotId) &&
-                        plot.get("userId").getAsString().equals(userName)) {
-                        return jsonInputs;
-                    } else {
-                        return plot;
-                    }
-                });
+        //NOTE: this is not an efficient implementation.
+        var tsFile = "timesync-data-" + projectId + ".json";
+        //remove existing record
+        filterJsonFile(tsFile, plot -> !plot.get("plotId").getAsString().equals(plotId) 
+                                    || !plot.get("userId").getAsString().equals(userName)
+                                    || !plot.get("packet").getAsString().equals(packet));
 
+        addElementToJsonFile(tsFile, jsonInputs);
         return "";
     }
 
