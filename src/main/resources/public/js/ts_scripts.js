@@ -743,23 +743,6 @@ function plotInt(){
     }
 
     var w = $("#plot").width()
-    //$("#svg").attr("width",w)
-
-    //var yearmin = d3.min(data.Values, function(d) {return d.Year;});
-    //var	yearmax = d3.max(data.Values, function(d) {return d.Year;});
-
-    //var date = new Date();
-    //var yearmin = 1982;
-    //var yearmax = date.getFullYear()
-
-
-    //adjust the ranges so there is some buffer
-
-    //currentDomain.year.min = yearmin; //needs to be a global variable - for resetting the plot to defualt domain
-    //currentDomain.year.max = yearmax+1; //needs to be a global variable - for resetting the plot to defualt domain
-    //xmin = yearmin;
-    //xmax = yearmax+1;
-
 
     //make an array of ticks and lables
     //var year //i think this is an abandoned line
@@ -800,7 +783,6 @@ function plotInt(){
         .tickFormat(d3.format(".4r"))
         .outerTickSize(0);
     //.tickFormat(d3.format("d"));
-
 
     //define the x axis
     yaxis = d3.svg.axis() //NEEDS TO BE A GLOBAL VARIABLE - IS USED HERE AND IN THE UPDATE FUNCTION
@@ -850,7 +832,6 @@ function plotInt(){
         .call(xyzoom)
         .on("dblclick.zoom", null)
 
-
     var vline = svg.selectAll(".vline")
         .data(xGrid) //.data(data.Values)
         .enter()
@@ -860,12 +841,6 @@ function plotInt(){
         .attr("y1", function(d){return -20000})
         .attr("y2", function(d){return 20000})
         .attr("class","vline")
-
-
-    //.selectAll("text")
-    //.attr("y", -10)
-    //.attr("x", 12)
-    //.attr("transform", "rotate(90)")
 
     //draw the y axis
     svg.append("g")
@@ -978,7 +953,6 @@ function plotInt(){
         lineData.push({"x":data.Values[selectThese[i]].decDate ,"y":data.Values[selectThese[i]][specIndex]}) //.Year
     }
 
-
     //add the default line
     var lineGraph = svg.append("path") //local because it will get overwritten
         .attr("d", lineFunction(lineData))
@@ -991,14 +965,13 @@ function plotInt(){
         .attr("text-anchor", "middle")
         .style("opacity", 0);
 
-
     //show doy on hover
     allCircles.on("mouseover", function(d){
         doyTxt.text(d.doy)
             .attr("x", xscale(d.decDate))
             .attr("y", yscale(d[specIndex]) - 10)
             .style("opacity", 1);
-    })
+        })
         .on("mouseout", function(d){
             doyTxt.style("opacity", 0);
         });
@@ -1009,7 +982,7 @@ function plotInt(){
             .attr("x", xscale(d.decDate))
             .attr("y", yscale(d[specIndex]) - 20)
             .style("opacity", 1);
-    })
+        })
         .on("mouseout", function(d){
             doyTxt.style("opacity", 0);
         });
@@ -1019,10 +992,6 @@ function plotInt(){
     allCircles.attr("clip-path", "url(#clip)");
     lineGraph.attr("clip-path", "url(#clip)");
     vline.attr("clip-path", "url(#clip)");
-
-
-    //dataCircles.eq(0).attr("class","data selected");
-    //dataCircles.eq(len-1).attr("class","data selected");
 
     //fill in the global selectedCircles variable for the first time
     var selectedCirclesTemp = $("circle.data.selected");
@@ -1164,10 +1133,6 @@ function changePlotLine(){
 
 //mechanism to reset the plot zoom
 $("#btnResetGlobal").click(function(){
-    //svg.call(xyzoom
-    //	.x(xscale.domain([defaultDomain.year.min, defaultDomain.year.max])) //xmin and xmax are global variables that are set in the "plotInt" function
-    //	.y(yscale.domain([defaultDomain[specIndex].min, defaultDomain[specIndex].max])) //domain is javascript object that comes from an outside file
-    //	.event);
     svg.call(xzoom
         .x(xscale.domain([defaultDomain.year.min, defaultDomain.year.max])) //xmin and xmax are global variables that are set in the "plotInt" function
         .y(yscale.domain([defaultDomain[specIndex].min, defaultDomain[specIndex].max])) //domain is javascript object that comes from an outside file
@@ -1179,10 +1144,6 @@ $("#btnResetGlobal").click(function(){
 });
 
 $("#btnResetLocal").click(function(){
-    //svg.call(xyzoom
-    //	.x(xscale.domain([defaultDomain.year.min, defaultDomain.year.max])) //xmin and xmax are global variables that are set in the "plotInt" function
-    //	.y(yscale.domain([defaultDomain[specIndex].min, defaultDomain[specIndex].max])) //domain is javascript object that comes from an outside file
-    //	.event);
     localStretch();
 });
 
@@ -1407,11 +1368,6 @@ $(document).ready(function(){
             else if(thisListID == "greenList"){$("#btnGreen div").replaceWith('<div><small>R</small><strong>G</strong><small>B</small><br><small>'+$("#"+thisSpecIndexID).text()+'</small><span class="caret specPlot"></span></div>')}
             else if(thisListID == "blueList"){$("#btnBlue div").replaceWith('<div><small>RG</small><strong>B</strong><br><small>'+$("#"+thisSpecIndexID).text()+'</small><span class="caret specPlot"></span></div>')};
 
-            //these could be global, they are retrieved again when a chip is replaced.
-            // activeRedSpecIndex = $("#redList li.active").attr('id')
-            // activeGreenSpecIndex = $("#greenList li.active").attr('id')
-            // activeBlueSpecIndex = $("#blueList li.active").attr('id')
-
             rgbColor = scaledRGB(data, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, n_chips);
             allDataRGBcolor = scaledRGB(allData, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, allData.Values.length);
             updatePlotRGB();
@@ -1464,10 +1420,6 @@ $(document).ready(function(){
         }
     });
 });
-
-
-
-
 
 //mechanism to display the selected points and line in the trajectory plot
 $("#btnLine").click(function(){
@@ -1537,129 +1489,10 @@ function setSelectedColor(){
 }
 
 
-///////////////////////////////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS/////////////////////////////////////////////////////////////////
-//////////////BELOW ARE LINE INFO FORM SCRIPTS////////////////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS//////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS/////////////////////////////////
-////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS/////////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS////
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-//GLOBAL VARIABLES//////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-
-//OLD VERTINFO TEMPLATE
-//template vertInfo object which holds all the segment and vertice info
-//			var vertInfo = {[{
-//						year:0,
-//						index:0,
-//						landUse:{
-//							dominant:"",
-//							notes:{
-//								wetland:false,
-//								mining:false,
-//								rowCrop:false,
-//								orchardTreeFarm:false,
-//								vineyardsOtherWoody:false
-//							}
-//						},
-//						landCover:{
-//							dominant:"",
-//							other:{
-//								trees:false,
-//								shrubs:false,
-//								grassForbHerb:false,
-//								impervious:false,
-//								naturalBarren:false,
-//								snowIce:false,
-//								water:false
-//							}
-//						},
-//						changeProcess:{
-//							changeProcess:"",
-//							notes:{
-//								natural:false,
-//								prescribed:false,
-//								sitePrepFire:false,
-//								airphotoOnly:false,
-//								clearcut:false,
-//								thinning:false,
-//								flooding:false,
-//								reserviorLakeFlux:false,
-//								wetlandDrainage:false
-//							}
-//						}
-//				}]}
-
-//NEW VERTINFO TEMPLATE
-//template vertInfo object which holds all the segment and vertice info
-//			var vertInfo = {[{
-//						year:0,
-//						index:0,
-//						landUse:{
-//							primary:{
-//								landUse:"",
-//								notes:{
-//									wetland:false,
-//									mining:false,
-//									rowCrop:false,
-//									orchardTreeFarm:false,
-//									vineyardsOtherWoody:false
-//								}
-//							},
-//							secondary:{
-//								landUse:"",
-//								notes:{
-//									wetland:false,
-//									mining:false,
-//									rowCrop:false,
-//									orchardTreeFarm:false,
-//									vineyardsOtherWoody:false
-//								}
-//							}
-//						},
-//						landCover:{
-//							landCover:"",
-//							other:{
-//								trees:false,
-//								shrubs:false,
-//								grassForbHerb:false,
-//								impervious:false,
-//								naturalBarren:false,
-//								snowIce:false,
-//								water:false
-//							}
-//						},
-//						changeProcess:{
-//							changeProcess:"",
-//							notes:{
-//								natural:false,
-//								prescribed:false,
-//								sitePrepFire:false,
-//								airphotoOnly:false,
-//								clearcut:false,
-//								thinning:false,
-//								flooding:false,
-//								reserviorLakeFlux:false,
-//								wetlandDrainage:false
-//							}
-//						}
-//				}]}
-
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
 //EVENT LISTENERS///////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
 
 $( window ).unload(function() { //catches refresh and url change
     saveVertInfo(sessionInfo, vertInfo);
@@ -1972,26 +1805,10 @@ $("#changeProcessSelection").click(function(e){			//, #landUseSelection, #landCo
 });
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-//DONE BUTTON EVENT HANDLERS////////////////////////////////////////////////////////////////////////////
-//when done buttons are clicked close their dropdown and record  the info in the inputs to the lineInfo object
-//$(".doneBtn").click(function(){   //not using done btn anymore - closeDropAndRecord is now called on mouse leave
-//	closeDropAndRecord();
-//});
-
-
 $("#lulc, #changeProcessDiv, #formsDiv").mouseleave(function() {
     closeDropAndRecord();
 });
 
-
-//MAKE SURE THAT FORM DROPS ARE CLOSED WHEN MOVING TO A NEW PLOT OR PROJECT
-
-//$("").click(function(){ //, #projBtn
-//$(document).on("click","#plotList li", function(){		 //, #LUnotesList li, #LCnotesList li
-//	console.log("IM IN!")
-//	closeDropAndRecord();
-//});
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -2019,7 +1836,6 @@ $("#landUseList li").click(function(){
     appendLUnotes(selection, "primary");
 });
 
-
 $("#landUseListSec li").click(function(){
     $("#LUnotesListSec li").addClass("disabled")//.removeClass("selected"); //reset display
     $("#LUnotesListSec input").attr("disabled", true)
@@ -2039,49 +1855,16 @@ $("#landUseListSec li").click(function(){
     }
 });
 
-
-
-
-
-
 $("#landCoverList li").click(function(){
     $("#LCnotesList li").addClass("disabled")//.removeClass("selected"); //reset display
     $("#LCnotesList input").attr("disabled", true)
     $("#LCnotesList input").prop("checked", false)
     $("#landCoverList li").removeClass("selected");
-
-
-
-
-
     //$(this).addClass("selected");
     var selection = $(this).text();	//get the text from the list selection that was clicked
     $("td.landCoverInput.active").text(selection);	 //place the text in the active td
     appendLCnotes(selection);
 });
-
-
-
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-
-//MAKE THE NOTE CHECKBOXES TOGGLE ON AND OFF AND SET THE "SELECTED" CLASS////////////////
-//$(document).ready(function(){
-//	$(document).on("click","#CPnotesList li, #LUnotesList li, #LCnotesList li", function(){
-//		var selected = $(this);
-//		if(selected.hasClass("disabled") == false){
-//			if(selected.hasClass("selected")){
-//				//selected.removeClass("selected");
-//				//$("span", this).replaceWith('<span class="glyphicon glyphicon-unchecked"></span> ');
-//			} else {
-//				//selected.addClass("selected");
-//				//$("span", this).replaceWith('<span class="glyphicon glyphicon-ok"></span> ');
-//			}
-//		}
-//	});
-//});
-//////////////////////////////////////////////////////////////////////////////////////////
 
 //highlight selected circles, canvases, and input row when the magnifying glass is clicked
 $(document).ready(function(){
@@ -2322,29 +2105,6 @@ function appendLCnotes(selection){
             $("#trees,#shrubs,#impervious,#naturalBarren,#snowIce,#grassForbHerb").attr("disabled",false);
             break;
     }
-
-
-
-
-    //$("#LCnotesList").empty();
-    //if(selection != ""){
-    //$("#LCnotesList").append(
-    //	'<li class="trees">Trees</li>'+
-    //	'<li class="shrubs">Shrubs</li>'+
-    //	'<li class="grassForbHerb">Grass/forb/herb</li>'+
-    //	'<li class="impervious">Impervious</li>'+
-    //	'<li class="naturalBarren">Natural/barren</li>'+
-    //	'<li class="snowIce">Snow/ice</li>'+
-    //	'<li class="water">Water</li>'
-    //);
-    //	$("#LCnotesList li").each(function(){
-    //		var thisClass = $(this).text().trim();
-    //		if(thisClass == selection){
-    //			$(this).hide();
-    //			return false
-    //		}
-    //	});
-    //}
 }
 
 
@@ -2362,16 +2122,6 @@ function changeProcessDoneBtn(){
     var selection = $("td.changeProcessInput.active").text();
 
     vertInfo[thisOne].changeProcess.changeProcess = selection;
-    //vertInfo[thisOne].changeProcess.notes.natural = $("#natural").hasClass("selected")
-    //vertInfo[thisOne].changeProcess.notes.prescribed = $("#prescribed").hasClass("selected")
-    //vertInfo[thisOne].changeProcess.notes.sitePrepFire = $("#sitePrepFire").hasClass("selected")
-    //vertInfo[thisOne].changeProcess.notes.airphotoOnly = $("#airphotoOnly").hasClass("selected")
-    //vertInfo[thisOne].changeProcess.notes.clearcut = $("#clearcut").hasClass("selected")
-    //vertInfo[thisOne].changeProcess.notes.thinning = $("#thinning").hasClass("selected")
-    //vertInfo[thisOne].changeProcess.notes.flooding = $("#flooding").hasClass("selected")
-    //vertInfo[thisOne].changeProcess.notes.reserviorLakeFlux = $("#reserviorLakeFlux").hasClass("selected")
-    //vertInfo[thisOne].changeProcess.notes.wetlandDrainage = $("#wetlandDrainage").hasClass("selected")
-
     vertInfo[thisOne].changeProcess.notes.natural = $("#natural").prop("checked");
     vertInfo[thisOne].changeProcess.notes.prescribed = $("#prescribed").prop("checked");
     vertInfo[thisOne].changeProcess.notes.sitePrepFire = $("#sitePrepFire").prop("checked");
@@ -2381,43 +2131,6 @@ function changeProcessDoneBtn(){
     vertInfo[thisOne].changeProcess.notes.flooding = $("#flooding").prop("checked");
     vertInfo[thisOne].changeProcess.notes.reserviorLakeFlux = $("#reserviorLakeFlux").prop("checked");
     vertInfo[thisOne].changeProcess.notes.wetlandDrainage = $("#wetlandDrainage").prop("checked");
-
-
-    //$("#CPnotesList .selected").removeClass("selected");
-
-    //switch(selection){
-    //	case "Fire":
-    //		fillInNotes("#CPnotesList .selected",thisOne,"natural","changeProcess");
-    //		fillInNotes("#CPnotesList .selected",thisOne,"prescribed","changeProcess");
-    //		fillInNotes("#CPnotesList .selected",thisOne,"sitePrepFire","changeProcess");
-    //	break;
-    //	case "Harvest":
-    //		fillInNotes("#CPnotesList .selected",thisOne,"clearcut","changeProcess");
-    //		fillInNotes("#CPnotesList .selected",thisOne,"thinning","changeProcess");
-    //		fillInNotes("#CPnotesList .selected",thisOne,"sitePrepFire","changeProcess");
-    //	break;
-    //	case "Decline":
-    //	break;
-    //	case "Wind":
-    //	break;
-    //	case "Hydrology":
-    //		fillInNotes("#CPnotesList .selected",thisOne,"flooding","changeProcess");
-    //		fillInNotes("#CPnotesList .selected",thisOne,"reserviorLakeFlux","changeProcess");
-    //	break;
-    //	case "Debris":
-    //	break;
-    //	case "Growth":
-    //	break;
-    //	case "Stable":
-    //	break;
-    //	case "Conversion":
-    //		fillInNotes("#CPnotesList .selected",thisOne,"wetlandDrainage","changeProcess");
-    //	break;
-    //	case "Other":
-    //	break;
-    //}
-    //fillInNotes("#CPnotesList .selected",thisOne,"airphotoOnly","changeProcess");
-    //console.log(vertInfo)
 }
 
 //land use
@@ -2437,20 +2150,11 @@ function landUseDoneBtn(){
     vertInfo[thisOne].landUse.secondary.landUse = thisSelectedSecLU.text() //get the text from the selected class
     thisSelectedSecLU.removeClass("selected"); //then make sure to get rid of the selected class so it can be set dynamically
 
-    //vertInfo[thisOne].landUse.primary.notes.wetland = $("#wetland").hasClass("selected")
-    //vertInfo[thisOne].landUse.primary.notes.mining = $("#mining").hasClass("selected")
-    //vertInfo[thisOne].landUse.primary.notes.rowCrop = $("#rowCrop").hasClass("selected")
-    //vertInfo[thisOne].landUse.primary.notes.orchardTreeFarm = $("#orchardTreeFarm").hasClass("selected")
-    //vertInfo[thisOne].landUse.primary.notes.vineyardsOtherWoody = $("#vineyardsOtherWoody").hasClass("selected")
-
-
     vertInfo[thisOne].landUse.primary.notes.wetland = $("#LUnotesList .wetland").prop("checked");
     vertInfo[thisOne].landUse.primary.notes.mining = $("#LUnotesList .mining").prop("checked");
     vertInfo[thisOne].landUse.primary.notes.rowCrop = $("#LUnotesList .rowCrop").prop("checked");
     vertInfo[thisOne].landUse.primary.notes.orchardTreeFarm = $("#LUnotesList .orchardTreeFarm").prop("checked");
     vertInfo[thisOne].landUse.primary.notes.vineyardsOtherWoody = $("#LUnotesList .vineyardsOtherWoody").prop("checked");
-
-
     vertInfo[thisOne].landUse.secondary.notes.wetland = $("#LUnotesListSec .wetland").prop("checked");
     vertInfo[thisOne].landUse.secondary.notes.mining = $("#LUnotesListSec .mining").prop("checked");
     vertInfo[thisOne].landUse.secondary.notes.rowCrop = $("#LUnotesListSec .rowCrop").prop("checked");
@@ -2607,73 +2311,6 @@ function updateSegmentForm(seriesIndex, addRemove){
     $(".segment").remove(); //empty the current segment form
     $(".vertex").remove(); //empty the current vertex form
     fillInForm(); //append new forms and fill them in from the altered vertInfo array
-
-
-
-    //vertInfo = [];
-    //var yearStart = 0,
-    //	yearEnd = 0,
-    //	len = selectedCircles.length,
-    //	startIndex = 0,
-    //	endIndex = 0,
-    //	i = 0;
-
-    //make empty segment entries in the form
-    //for(i; i < len-1; i++){
-    //	startIndex = selectedCircles[i];
-    //	endIndex = selectedCircles[i+1];
-    //	yearStart = data.Values[startIndex].Year; //years[startIndex]
-    //	yearEnd =   data.Values[endIndex].Year; //years[endIndex];
-    //	$("#segmentsFormTbl").append('<tr class="segment"><td class="highlightIt"><span class="glyphicon glyphicon-search"></span></td><td>'+yearStart+'</td><td>'+yearEnd+'</td><td class="changeProcessInput formDrop"></td></tr>');
-    //}
-
-    //make empty vertex entries
-    //for(i=0; i < len; i++){
-    //	startIndex = selectedCircles[i];
-    //	yearStart = data.Values[startIndex].Year //years[startIndex];
-    //	$("#verticesFormTbl").append('<tr class="vertex"><td class="highlightIt"><span class="glyphicon glyphicon-search"></span></td><td>'+yearStart+'</td><td class="landUseInput formDrop lulc"></td><td class="landCoverInput formDrop lulc"></td></tr>');
-    //	vertInfo.push({
-    //		year:yearStart,
-    //		index:startIndex,
-    //		landUse:{
-    //			dominant:"",
-    //			notes:{
-    //				wetland:false,
-    //				mining:false,
-    //				rowCrop:false,
-    //				orchardTreeFarm:false,
-    //				vineyardsOtherWoody:false
-    //			}
-    //
-    //		},
-    //		landCover:{
-    //			dominant:"",
-    //			other:{
-    //				trees:false,
-    //				shrubs:false,
-    //				grassForbHerb:false,
-    //				impervious:false,
-    //				naturalBarren:false,
-    //				snowIce:false,
-    //				water:false
-    //			}
-    //		},
-    //		changeProcess:{
-    //			changeProcess:"",
-    //			notes:{
-    //				natural:false,
-    //				prescribed:false,
-    //				sitePrepFire:false,
-    //				airphotoOnly:false,
-    //				clearcut:false,
-    //				thinning:false,
-    //				flooding:false,
-    //				reserviorLakeFlux:false,
-    //				wetlandDrainage:false
-    //			}
-    //		}
-    //	});
-    //}
 }
 
 
@@ -2694,34 +2331,6 @@ function dropInputLists(thisInput, thisList, xAdj, yAdj, widthAdj){
     }).show();
 }
 
-//fill in note check box status in the lineInfo object when the done button is pressed
-//function fillInNotes(selector, thisOne, noteClass, inputType){
-//	noteClassSelected = $(selector).hasClass(noteClass);
-//	switch(inputType){
-//		case "landUse":
-//			if(noteClassSelected){
-//				vertInfo[thisOne].landUse.primary.notes[noteClass] = true;
-//			} else {
-//				vertInfo[thisOne].landUse.primary.notes[noteClass] = false;
-//			}
-//		break;
-//		case "landCover":
-//			if(noteClassSelected){
-//				vertInfo[thisOne].landCover.other[noteClass] = true;
-//			} else {
-//				vertInfo[thisOne].landCover.other[noteClass] = false;
-//			}
-//		break;
-//		case "changeProcess":
-//			if(noteClassSelected){
-//				vertInfo[thisOne].changeProcess.notes[noteClass] = true;
-//			} else {
-//				vertInfo[thisOne].changeProcess.notes[noteClass] = false;
-//			}
-//		break;
-//	}
-//}
-
 //function to change the note icon depending on whether the note is selected or not
 function changeNoteIcon(notesList, thisOne, inputType){
     //theseLi = $(notesList+" li")
@@ -2739,9 +2348,6 @@ function changeNoteIcon(notesList, thisOne, inputType){
             //noteNull = vertInfo[thisOne].landUse.primary.notes[noteClass];
             break;
         case "landUseSec":
-
-
-
             $("#LUnotesListSec .wetland").prop("checked",vertInfo[thisOne].landUse.secondary.notes.wetland);
             $("#LUnotesListSec .mining").prop("checked",vertInfo[thisOne].landUse.secondary.notes.mining);
             $("#LUnotesListSec .rowCrop").prop("checked",vertInfo[thisOne].landUse.secondary.notes.rowCrop);
@@ -2772,16 +2378,6 @@ function changeNoteIcon(notesList, thisOne, inputType){
             //noteNull = vertInfo[thisOne].changeProcess.notes[noteClass];
             break;
     }
-
-    //noteNull = lineInfo.segments[thisOne].notes[noteClass];
-    //		if(noteNull == false){
-    //thisLi.prepend('<span class="glyphicon glyphicon-unchecked"></span> ') //theseLi.eq(i)
-    //		} else{
-    //thisLi.removeClass("disables");
-    //thisLi.prepend('<span class="glyphicon glyphicon-ok"></span> '); //theseLi.eq(i)
-    //thisLi.addClass("selected");
-    //		}
-    //});
 }
 
 //turn highlighting off
@@ -2842,9 +2438,6 @@ function closeDropAndRecord(){
 /////////////////////////////////////////////////////////////////////////////////////////
 
 
-
-
-
 ///////////////////////////////////////////////////////BELOW ARE CHIP SCRIPTS///////////////////////////////////////////////////////
 //////////////BELOW ARE CHIP SCRIPTS////////////////////////////////////////BELOW ARE CHIP SCRIPTS//////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2853,8 +2446,6 @@ function closeDropAndRecord(){
 ////////////////////////////BELOW ARE CHIP SCRIPTS//////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////BELOW ARE CHIP SCRIPTS/////////////////////////////////BELOW ARE CHIP SCRIPTS////
-
-
 
 ///////////PLOT SIZE CHANGE///////////////////////////////////////////////////////////////////////////////
 $("#plotSize").change(function(){ //REACT IGNORED FUNCTION
@@ -3010,12 +2601,6 @@ function makeChipInfo(selection, origData){
                 // chipSet432:origData[i].url_432}
             var sensor = origData[i].iid.substring(8, 12);
         }
-        //define/store some other info needed for zooming
-        //chipInfo.chipsInStrip.push(thisManyChips);
-        //chipInfo.useThisChip.push(useThisChip);
-        //chipInfo.year.push(year);
-        //chipInfo.julday.push(julday);
-        //chipInfo.src.push(src);
 
         chipInfo.chipsInStrip[i] = 1 //thisManyChips;
         chipInfo.useThisChip[i] = useThisChip;
@@ -3056,162 +2641,8 @@ function updateChipInfo(){
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-function tlPlay(){
-    var tlImgID = $(".chipImgSrc").eq(timeLapseIndex)[0]
-    tlctx.drawImage(
-        tlImgID,
-        chipInfo.sxZoom[timeLapseIndex],
-        chipInfo.syZoom[timeLapseIndex],
-        chipInfo.sWidthZoom[timeLapseIndex],
-        chipInfo.sWidthZoom[timeLapseIndex],
-        0,0,235,235
-    );
-    tlctx.strokeStyle=chipDisplayProps.plotColor; //"#FF0000"
-    tlctx.lineWidth=1;
-    tlctx.lineCap = 'square';
-    tlctx.strokeRect(117.5-(chipDisplayProps.boxZoom/2), 117.5-(chipDisplayProps.boxZoom/2), chipDisplayProps.boxZoom, chipDisplayProps.boxZoom);
-    $("#tlDate").text(data.Values[timeLapseIndex].Year);
-    if(timeLapseIndex < lastIndex){timeLapseIndex += 1} else {timeLapseIndex = 0}
-}
-
-flickerDir = "forward"; //"forward";
-function tlFlicker(){
-    var tlImgID = $(".chipImgSrc").eq(timeLapseIndex)[0]
-    tlctx.drawImage(
-        tlImgID,
-        chipInfo.sxZoom[timeLapseIndex],
-        chipInfo.syZoom[timeLapseIndex],
-        chipInfo.sWidthZoom[timeLapseIndex],
-        chipInfo.sWidthZoom[timeLapseIndex],
-        0,0,235,235
-    );
-    tlctx.strokeStyle=chipDisplayProps.plotColor; //"#FF0000"
-    tlctx.lineWidth=1;
-    tlctx.lineCap = 'square';
-    tlctx.strokeRect(117.5-(chipDisplayProps.boxZoom/2), 117.5-(chipDisplayProps.boxZoom/2), chipDisplayProps.boxZoom, chipDisplayProps.boxZoom);
-    $("#tlDate").text(data.Values[timeLapseIndex].Year);
-
-    if(flickerDir == "forward"){
-        timeLapseIndex -= 1;
-        flickerDir = "back";
-    } else{
-        timeLapseIndex += 1;
-        flickerDir = "forward";
-    }
-    if(timeLapseIndex > lastIndex){timeLapseIndex = 0}
-    if(timeLapseIndex < 0){timeLapseIndex = lastIndex}
-}
-
-
-var vidCntl = {"isVidPlaying":0,"dontPlayVid":0,"isFlickerOn":0,"dontFlicker":0,"speed":300}
-$(".tlBtn").click(function(){
-    var thisID = $(this).attr("id");
-    var wasVidPlaying = vidCntl.isVidPlaying;
-    var wasFlickerOn = vidCntl.isFlickerOn;
-
-    if(vidCntl.isVidPlaying == 1){
-        clearInterval(playTL);
-        $("#tlPlay span").attr("class","glyphicon glyphicon-play")
-        vidCntl.isVidPlaying = 0;
-        vidCntl.dontPlayVid = 1;
-    }
-    if(vidCntl.isFlickerOn == 1){
-        clearInterval(flickerTL);
-        $("#tlPlay span").attr("class","glyphicon glyphicon-play")
-        vidCntl.isFlickerOn = 0;
-        vidCntl.dontFlicker = 1;
-        flickerDir = "forward";
-    }
-
-
-    if(thisID == "tlBackx2"){
-        timeLapseIndex += -2;
-        timeLapseIndex = (timeLapseIndex < 0) ? 0:timeLapseIndex
-        drawTLimage();
-        $("#tlDate").text(data.Values[timeLapseIndex].Year);
-        drawTLimage();
-    } else if(thisID == "tlBack" && timeLapseIndex > 0){
-        timeLapseIndex += -1;
-        drawTLimage();
-        $("#tlDate").text(data.Values[timeLapseIndex].Year);
-        drawTLimage();
-    } else if(thisID == "tlPlay" && vidCntl.dontPlayVid == 0){
-        playTL = setInterval(tlPlay, vidCntl.speed);
-        vidCntl.isVidPlaying = 1
-        $("#tlPlay span").attr("class","glyphicon glyphicon-pause")
-    } else if(thisID == "tlForward" && timeLapseIndex < lastIndex){
-        timeLapseIndex += 1;
-        drawTLimage();
-        $("#tlDate").text(data.Values[timeLapseIndex].Year);
-        drawTLimage();
-    } else if(thisID == "tlForwardx2"){
-        timeLapseIndex += 2;
-        timeLapseIndex = (timeLapseIndex > lastIndex) ? (lastIndex):timeLapseIndex
-        $("#tlDate").text(data.Values[timeLapseIndex].Year);
-        drawTLimage();
-    } else if(thisID == "flicker" && vidCntl.dontFlicker == 0){
-        flickerTL = setInterval(tlFlicker, vidCntl.speed);
-        vidCntl.isFlickerOn = 1
-    } else if(thisID == "faster"){
-        vidCntl.speed = (vidCntl.speed > 100) ? vidCntl.speed-50:vidCntl.speed //50 is the lowest speed
-        if(wasVidPlaying == 1){
-            playTL = setInterval(tlPlay, vidCntl.speed);
-            $("#tlPlay span").attr("class","glyphicon glyphicon-pause")
-            vidCntl.isVidPlaying = 1
-        }
-        if(wasFlickerOn == 1){
-            flickerTL = setInterval(tlFlicker, vidCntl.speed);
-            vidCntl.isFlickerOn = 1
-        }
-    } else if(thisID == "slower"){
-        vidCntl.speed = (vidCntl.speed < 850) ? vidCntl.speed+50:vidCntl.speed //900 is the lowest speed
-        if(wasVidPlaying == 1){
-            playTL = setInterval(tlPlay, vidCntl.speed);
-            $("#tlPlay span").attr("class","glyphicon glyphicon-pause")
-            vidCntl.isVidPlaying = 1
-        }
-        if(wasFlickerOn == 1){
-            flickerTL = setInterval(tlFlicker, vidCntl.speed);
-            vidCntl.isFlickerOn = 1
-        }
-    }
-
-    vidCntl.dontPlayVid = 0;
-    vidCntl.dontFlicker = 0;
-
-    //$("#tlDate").text(data.Values[timeLapseIndex].Year);
-})
-
-function drawTLimage(){
-    var tlImgID = $(".chipImgSrc").eq(timeLapseIndex)[0]
-    tlctx.drawImage(
-        tlImgID,
-        chipInfo.sxZoom[timeLapseIndex],
-        chipInfo.syZoom[timeLapseIndex],
-        chipInfo.sWidthZoom[timeLapseIndex],
-        chipInfo.sWidthZoom[timeLapseIndex],
-        0,0,235,235
-    );
-    tlctx.strokeStyle=chipDisplayProps.plotColor; //"#FF0000"
-    tlctx.lineWidth=1;
-    tlctx.lineCap = 'square';
-    tlctx.strokeRect(117.5-(chipDisplayProps.boxZoom/2), 117.5-(chipDisplayProps.boxZoom/2), chipDisplayProps.boxZoom, chipDisplayProps.boxZoom);
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
-
-
-
-
-
-
 
 ////////////////DEFINE FUNCTION TO DRAW ALL THE IMAGE CHIPS TO THE CANVASES/////////////////////
 //var plotColor = $("#plotColor").prop("value") //global variable
@@ -3220,7 +2651,6 @@ function drawAllChips(window){
     updateZoom();
     for(var i=0; i<n_chips; i++){drawOneChip(i, window)}
 }
-
 
 ////////////DEFINE FUNCTION TO DRAW A NEW IMAGE SECTION TO A CANVAS////////////////////////////
 function drawOneChip(thisChip, window){
@@ -3272,8 +2702,6 @@ function drawOneChip(thisChip, window){
         $(".chipDate").eq(thisChip).empty().append(chipInfo.year[thisChip]+"-"+chipInfo.julday[thisChip]+" "+chipInfo.sensor[thisChip])
     }
 }
-
-
 
 ////////////REPLACE A CHIP WITH ONE SELECTED IN THE REMOTE WINDOW//////////////////////////////
 function replaceChip(pass_data){
@@ -3478,69 +2906,12 @@ $("body").on("click", ".expandChipYear, .data", function(e){ //need to use body 
 
 
 ///////////////////OPEN THE REMOTE CHIP STRIP WINDOW AND SEND MESSAGES/////////////////////
-/* 			var trajectoryWindow = null ;//keep track of whether the chipstrip window is open or not so it is not opened in multiple new window on each chip click
-			var innerWidth = window.innerWidth
-			$("body").on("click", "#expandTrajPlot", function(e){ //need to use body because the canvases have probably not loaded yet
-
-				var pass_data = {
-					"action":"add_trajectory", //hard assign
-					"data":data,
-					"allData":allData,
-					"specIndex":specIndex,
-					"domain":currentDomain,
-					"n_chips":n_chips,
-					"selectThese":selectThese,
-					"activeRedSpecIndex":activeRedSpecIndex,
-					"activeGreenSpecIndex":activeGreenSpecIndex,
-					"activeBlueSpecIndex":activeBlueSpecIndex
-				};
-
-				if ((trajectoryWindow == null) || (trajectoryWindow.closed)){      //if the window is not loaded then load it and send the message after it is fully loaded
-					trajectoryWindow = window.open("./expanded_trajectory_plot.html","_blank","width="+innerWidth+"px, height=750px, toolbar=0, titlebar=0, menubar=0, scrollbars=yes"); //open the remote chip strip window
-					$(trajectoryWindow).load(function(){trajectoryWindow.postMessage(JSON.stringify(pass_data),"*");}); //wait until the remote window finishes loading before sending the message
-					} else {                                                         //else if the window is already loaded, just send the message - no need to wait
-					trajectoryWindow.postMessage(JSON.stringify(pass_data),"*");
-				}
-			}); */
-
-
-/* 			var expandedChipWindow = null;
-			$("#expandChipGallery").click(function(){
-
-				var selectedColor = $("#selectedColor").prop("value");
-				var pass_data = {
-					"action":"init_chips", //hard assign
-					"selectThese":selectedCircles, //selectThese, //"n_chips":"40", //get this from the img metadata
-					"chipInfo":chipInfo,
-					"n_chips":n_chips,
-					"chipDisplayProps":chipDisplayProps,
-					"selectedColor":selectedColor
-
-				};
-				if ((expandedChipWindow == null) || (expandedChipWindow.closed)){      //if the window is not loaded then load it and send the message after it is fully loaded
-					expandedChipWindow = window.open("./expanded_chip_gallery.html","_blank","width=1080px, height=840px", "toolbar=0","titlebar=0","menubar=0","scrollbars=yes"); //open the remote chip strip window
-					$(expandedChipWindow).load(function(){expandedChipWindow.postMessage(JSON.stringify(pass_data),"*");}); //wait until the remote window finishes loading before sending the message
-				} else {                                                         //else if the window is already loaded, just send the message - no need to wait
-					expandedChipWindow.postMessage(JSON.stringify(pass_data),"*");
-				}
-			}); */
-
-
 var doyCalWindow = null;
 $("#doyCalLi").click(function(){
     if ((doyCalWindow == null) || (doyCalWindow.closed)){      //if the window is not loaded then load it and send the message after it is fully loaded
         doyCalWindow = window.open("./doy_calendar.html","_blank","width=900px, height=647px, toolbar=0, titlebar=0, menubar=0, scrollbars=yes"); //open the remote chip strip window
     }
 });
-
-/* 			loads a page that contains the response design - taken care of with a pdf link right now (3/2/16)
-			var RDWindow = null;
-			$("#RDLi").click(function(){
-				if ((RDWindow == null) || (RDWindow.closed)){      //if the window is not loaded then load it and send the message after it is fully loaded
-					RDWindow = window.open("./response_design.html","_blank","width=900px, height=647px, toolbar=0, titlebar=0, menubar=0, scrollbars=1"); //open the remote chip strip window
-				}
-			}); */
-
 
 //////////////////////////GET MESSAGES FROM REMOTE////////////////////////////////////////////
 //receive messages from the origin window
@@ -3622,57 +2993,3 @@ $(window).on("message onmessage",function(e){
 
     //$("#message").append(e.originalEvent.data); //****need to use 'originalEvent' instead of 'event' since im using jquery to bind the event. the jquery event object is different from the javascript event object - originalEvent is a copied version of the original javascript event object
 });
-
-
-function tlInt(){
-    var tlImgID = $(".chipImgSrc").eq(timeLapseIndex)[0]
-    tlctx.mozImageSmoothingEnabled = false;
-    tlctx.msImageSmoothingEnabled = false;
-    tlctx.imageSmoothingEnabled = false;
-    tlctx.drawImage(
-        tlImgID,
-        chipInfo.sxZoom[timeLapseIndex],
-        chipInfo.syZoom[timeLapseIndex],
-        chipInfo.sWidthZoom[timeLapseIndex],
-        chipInfo.sWidthZoom[timeLapseIndex],
-        0,0,235,235
-    );
-    tlctx.strokeStyle=chipDisplayProps.plotColor; //"#FF0000"
-    tlctx.lineWidth=1;
-    tlctx.lineCap = 'square';
-    tlctx.strokeRect(117.5-(chipDisplayProps.boxZoom/2), 117.5-(chipDisplayProps.boxZoom/2), chipDisplayProps.boxZoom, chipDisplayProps.boxZoom);
-    $("#tlDate").text(data.Values[timeLapseIndex].Year);
-}
-
-
-
-
-/////////////////////////LOAD THE CHIPS////////////////////////////////////////////////////////
-//function to run functions that need all the elements to be loaded - also need to do them in order was the window is loaded
-//var tlctx //global
-//function start(){
-//makeChipInfo("json"); //random
-//drawAllChips();
-
-//tlImgID = document.getElementById("img0");
-//	tlImgID = $(".chipImgSrc").eq(timeLapseIndex)[0]
-//	console.log(tlImgID);
-//	tlctx = tlCanvasID.getContext("2d")
-//	tlctx.mozImageSmoothingEnabled = false;
-//	tlctx.msImageSmoothingEnabled = false;
-//	tlctx.imageSmoothingEnabled = false;
-//	tlctx.drawImage(
-//		tlImgID,
-//		chipInfo.sxZoom[timeLapseIndex],
-//		chipInfo.syZoom[timeLapseIndex],
-//		chipInfo.sWidthZoom[timeLapseIndex],
-//		chipInfo.sWidthZoom[timeLapseIndex],
-//		0,0,235,235
-//	);
-//	tlctx.strokeStyle=chipDisplayProps.plotColor; //"#FF0000"
-//	tlctx.lineWidth=1;
-//	tlctx.lineCap = 'square';
-//	tlctx.strokeRect(117.5-(chipDisplayProps.boxZoom/2), 117.5-(chipDisplayProps.boxZoom/2), chipDisplayProps.boxZoom, chipDisplayProps.boxZoom);
-//	$("#tlDate").text(data.Values[timeLapseIndex].Year);
-//
-//}
