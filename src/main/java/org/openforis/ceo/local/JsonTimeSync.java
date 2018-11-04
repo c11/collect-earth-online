@@ -81,12 +81,12 @@ public class JsonTimeSync implements TimeSync {
         var plotId = req.params(":plotid");
         var packet = req.params(":packet");
         var plots = readJsonFile("timesync-data-" + projectId + ".json").getAsJsonArray();
-        var matchingProject = findInJsonArray(plots, plot -> plot.get("userId").getAsString().equals(interpreter) 
+        var matched = findInJsonArray(plots, plot -> plot.get("userId").getAsString().equals(interpreter) 
                                                         && plot.get("projectId").getAsString().equals(projectId)
                                                         && plot.get("plotId").getAsString().equals(plotId)
                                                         && plot.get("packet").getAsString().equals(packet));
-        if (matchingProject.isPresent()) {
-            return matchingProject.get().toString();
+        if (matched.isPresent()) {
+            return matched.get().toString();
         } else {
             return "";
         }
@@ -112,12 +112,10 @@ public class JsonTimeSync implements TimeSync {
 
         //NOTE: this is not an efficient implementation.
         var tsFile = "timesync-data-" + projectId + ".json";
-        //remove existing record
-        filterJsonFile(tsFile, plot -> !plot.get("plotId").getAsString().equals(plotId) 
+        addElementToJsonFile(tsFile, jsonInputs, 
+                                plot -> !plot.get("plotId").getAsString().equals(plotId) 
                                     || !plot.get("userId").getAsString().equals(userName)
                                     || !plot.get("packet").getAsString().equals(packet));
-
-        addElementToJsonFile(tsFile, jsonInputs);
         return "";
     }
 

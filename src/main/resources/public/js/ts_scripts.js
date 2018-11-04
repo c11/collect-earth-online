@@ -15,7 +15,7 @@ function configTimeSyncDash() {
         sessionInfo = {...sessionInfo, ...ceoPlot};
 
         console.log('[configTimeSyncDash]', ceoPlot, sessionInfo);
-        getData(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,activeBlueSpecIndex,ylabel)
+        getData(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,activeBlueSpecIndex,ylabel);
     }
 }
 
@@ -62,6 +62,8 @@ var origData = [];
 var selectedCircles = [];
 var lineDate = [];
 var vertInfo = [];
+var comment = '';
+var isExample = 0;
 var selectThese=[];
 var lineData = [];
 var chipstripwindow = null ;//keep track of whether the chipstrip window is open or not so it is not opened in multiple new window on each chip click
@@ -136,6 +138,9 @@ var flickerTL;
 var windowH = $(window).height();
 var windowW = $(window).width();
 
+/************************************************************************************************/
+/*********************** BeginSetion 1. Retrieving TimeSync Interpretation **********************/
+
 var tsServer = 'https://localhost:8080';
 var geeServer = 'https://localhost:8888';
 var osuServer = 'https://timesync.forestry.oregonstate.edu/_ts3';
@@ -148,6 +153,7 @@ function getUrls(sessionInfo, year){
         "projectList":  `${tsServer}/get-all-projects`,
         "plotList":     `${tsServer}/get-project-plots/${sessionInfo.projectID}/${sessionInfo.numPlots}`,
         "vertInfoSave": `${tsServer}/timesync/vertex/save`,
+        "vertices":     `${tsServer}/timesync/vertex/${sessionInfo.userID}/${sessionInfo.projectID}/${sessionInfo.plotID}/${sessionInfo.packet}`,
 
         "plotInterp":   osuServer + '/index.php/vertex/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,
         "plotComment":  osuServer + '/comment/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,
@@ -159,6 +165,12 @@ function getUrls(sessionInfo, year){
     return urls;
 }
 
+/**
+ * parse the data from server to fit local data usage requirement.
+ * TODO: restruture this.
+ * @param {*} origData 
+ * @param {*} i 
+ */
 function parseSpectralData(origData,i){
     var vertInfoSpec = {
         "image_year":origData[i].image_year,
@@ -175,8 +187,173 @@ function parseSpectralData(origData,i){
     return vertInfoSpec
 }
 
-//DEFINE LOADING FUNCTIONS AND LISTENERS//
+/**
+ * process annual spectral data with or without interpretation
+ * NOTE: this is not a pure function.
+ * 
+ * called by getData()
+ * 
+ * @param {*} tsdata 
+ */
+function processAnnualSpectrals(tsdata) {
+  //reset global variables
+  let keepProps = ['B1', 'B2', 'B3', 'B4', 'B5', 'B7', 'cfmask', 'iid', 'image_julday', 'image_year'];
+  origData = tsdata.map(v => _.pick(v, keepProps));
+  n_chips = origData.length;
+  lastIndex = n_chips - 1;
+  data = {"Values": []};
+  allData = {"Values": []};
+  chipInfo = {useThisChip:[],
+              canvasIDs:[],
+              imgIDs:[],
+              sxOrig:[],
+              syOrig:[],
+              sWidthOrig:[],
+              sxZoom:[],
+              syZoom:[],
+              sWidthZoom:[],
+              chipsInStrip:[],
+              year:[],
+              julday:[],
+              src:[],
+              sensor:[]};
+  
+  for (let i = 0; i < n_chips; i++) {
+    data.Values.push(parseSpectralData(origData, i));
+    yearList.push(origData[i].image_year);
+  }
+
+  var maxXdomain = d3.max(yearList)+1;
+  var minXdomain = d3.min(yearList)-1;
+  defaultDomain.year.max = maxXdomain;
+  currentDomain.year.max = maxXdomain;
+  defaultDomain.year.min = minXdomain;
+  currentDomain.year.min = minXdomain;
+  
+  data = calcIndices(data); //reset global - calculate the spectral indices
+  rgbColor = scaledRGB(data, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, n_chips); //reset global - calculate the rbg color
+  data = calcDecDate(data); //could wrap this into data appending push function
+  /*	YANG: 2016.08.06: warren want to change it to global stretch
+  Yang: 2016.08.31: warren want to change it back to always local stretch */
+  if (!currentDomain.hasCustomizedXY) {
+      updateStretch();
+  }
+}
+
+/**
+ * extract previous interpretation
+ * NOTE: this is not a pure function.
+ * 
+ * @param {*} tsdata 
+ */
+function extractInterpretation(tsdata, comment, isExample) {
+  vertInfo = [];
+
+  comment = comment; //tsdata.comment===undefined ? "" : tsdata.comment;
+  isExample = isExample; //tsdata.isExample;
+
+  tsdata.forEach( (v, i) => {
+    if (v.isVertex) {
+      //TODO: is shallow copying ok here.
+      v.index = i;
+      vertInfo.push(_.pick(v, ['image_year', 'image_julday', 'index', 'landUse', 'landCover', 'changeProcess','isVertex']));
+    }
+  })
+
+  //check to see if vert info has been filled in for this plot
+  if(vertInfo.length !=0){
+    for(var i=0;i<vertInfo.length;i++){
+        selectThese.push(vertInfo[i].index); //reset global
+    }
+  } else{
+    selectThese = [0,tsdata.length-1];
+    for(var i=0;i<selectThese.length;i++){
+        vertInfo.push({image_year:origData[selectThese[i]].image_year,image_julday:origData[selectThese[i]].image_julday,index:selectThese[i],iid:origData[selectThese[i]].iid,isVertex:true,landUse:{
+                primary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}},
+                secondary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}}
+            },landCover:{landCover:"",other:{trees:false,shrubs:false,grassForbHerb:false,impervious:false,naturalBarren:false,snowIce:false,water:false}},changeProcess:{changeProcess:"",notes:{natural:false,prescribed:false,sitePrepFire:false,airphotoOnly:false,clearcut:false,thinning:false,flooding:false,reserviorLakeFlux:false,wetlandDrainage:false}}})
+    }
+  }
+}
+
+function updateUI() {
+  //update UI
+  fillInForm() //fill out the form inputs
+  $("#commentInput").val(comment);
+  $("#isExampleCheckbox").prop("checked", isExample == 1);
+  plotInt(); //draw the points
+  makeChipInfo("json", origData)
+  appendSrcImg(); //append the src imgs
+  appendChips("annual",selectThese); //append the chip div/canvas/img set
+  //once the imgs have loaded make the chip info and draw the img to the canvas and display the time-lapse feature
+  $("#img-gallery").imagesLoaded(function(){
+    //makeChipInfo("json", origData); 
+    //chip info array gets set in "appendChips" 
+    //gets filled out here because we have to wait 
+    //until the imgs have loaded to get their height 
+    //(used when chip strip is the src - not needed when chips are singles)
+    drawAllChips("annual");	//draw the imgs to the canvas
+  });
+}
+
+/**
+ * Previous implementation in a hierachical approach: 
+ *  load annual spectral data -> load all spectral data -> load interpretation -> load comments
+ * Each of the steps above requires successful execution of the previous step.
+ *  
+ * In the new implementation, it is restructed as:
+ *  - load interpretation and selected annual image selection
+ *  - if there is no interpretation saved
+ *      + load spectral data from GEE
+ *      + populate image chip
+ *    else
+ *      + use stored data to build trajectory
+ *      + populate image chip with previously selected image id
+ *      + update interface with existing interpretation
+ *  - load all spectral data
+ * 
+ * @param {*} sessionInfo 
+ * @param {*} specIndex 
+ * @param {*} activeRedSpecIndex 
+ * @param {*} activeGreenSpecIndex 
+ * @param {*} activeBlueSpecIndex 
+ * @param {*} ylabel 
+ */
 function getData(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,activeBlueSpecIndex,ylabel){
+    let urls = getUrls(sessionInfo);
+    //load interpretation
+    fetch(urls.vertices)
+      .then(res => res.json())
+      .then(tsdata=> {
+        console.log(tsdata);
+
+        //TODO: is it possible that there is no timeSync property in the data?
+        processAnnualSpectrals(tsdata.timeSync);
+        extractInterpretation(tsdata.timeSync, tsdata.comment===undefined ? "" : tsdata.comment, tsdata.isExample);
+        updateUI();
+        //get all spectral data
+        //update ui
+      })
+      .catch(error=>{
+        //no interpretation has been saved
+        //get data from GEE
+        fetch(urls.selectedSpec)
+          .then(res => res.json())
+          .then(tsdata=> {
+            processAnnualSpectrals(tsdata.timeseries);
+            extractInterpretation(tsdata.timeseries, "", 0);
+            updateUI();
+          })
+          .catch(err=> {
+            console.log(err);
+            alert("Error retrieving plot spectral data.");
+          });
+      });
+
+    //retrieve all spectral data
+
+    return;
+
     // $.getJSON(getUrls(sessionInfo).selectedSpec).done(function(returnedData){ //origData
     fetch(getUrls(sessionInfo).selectedSpec).then(function(resp){
         return resp.json();
@@ -302,7 +479,149 @@ function getData(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,a
     });
 }
 
-//function to populate the project list when #projectList element finishes loading
+/**
+ * This is the previous implementation in a hierachical approach: 
+ *  load annual spectral data -> load all spectral data -> load interpretation -> load comments
+ * Each of the steps above requires successful execution of the previous step.
+ *  
+ * @param {*} sessionInfo 
+ * @param {*} specIndex 
+ * @param {*} activeRedSpecIndex 
+ * @param {*} activeGreenSpecIndex 
+ * @param {*} activeBlueSpecIndex 
+ * @param {*} ylabel 
+ */
+function getDataOSU(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,activeBlueSpecIndex,ylabel){
+    // $.getJSON(getUrls(sessionInfo).selectedSpec).done(function(returnedData){ //origData
+    fetch(getUrls(sessionInfo).selectedSpec).then(function(resp){
+        return resp.json();
+    }).then(function(returnedData){
+        console.log(returnedData);
+
+        // $("#targetDOY").text("(Target DOY: "+returnedData[0].target_day + ")")
+        $("#targetDOY").text("(Target DOY: "+sessionInfo.tsTargetDay + ")");
+        origData = returnedData.timeseries; //reset global
+        n_chips = origData.length; //reset global
+        lastIndex = n_chips-1; //reset global
+        data = {"Values":[]}; //reset global
+        allData = {"Values":[]}; //reset global
+        chipInfo = {useThisChip:[],canvasIDs:[],imgIDs:[],sxOrig:[],syOrig:[],sWidthOrig:[],sxZoom:[],syZoom:[],sWidthZoom:[],chipsInStrip:[],year:[],julday:[],src:[],sensor:[]}; //reset global
+        yearList = []; //reset gobal
+
+        for(var i=0;i<n_chips;i++){
+            data.Values.push(parseSpectralData(origData,i));
+            yearList.push(origData[i].image_year);
+        }
+
+        //set the default x domain max to the max year of the data, plus 1 to get a line at the end of the year
+        var maxXdomain = d3.max(yearList)+1;
+        var minXdomain = d3.min(yearList)-1;
+        defaultDomain.year.max = maxXdomain;
+        currentDomain.year.max = maxXdomain;
+        defaultDomain.year.min = minXdomain;
+        currentDomain.year.min = minXdomain;
+
+
+        data = calcIndices(data); //reset global - calculate the spectral indices
+        rgbColor = scaledRGB(data, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, n_chips); //reset global - calculate the rbg color
+        data = calcDecDate(data); //could wrap this into data appending push function
+        /*	YANG: 2016.08.06: warren want to change it to global stretch
+        Yang: 2016.08.31: warren want to change it back to always local stretch */
+        if (!currentDomain.hasCustomizedXY) {
+            updateStretch();
+        }
+
+        //get spectral data for all the images
+        $.getJSON(getUrls(sessionInfo).allSpec).done(function(returnedData){
+            for(var i=0;i<returnedData.timeseries.length;i++){
+                allData.Values.push(parseSpectralData(returnedData.timeseries,i));
+            }
+            //make sure that all of the urls have been added to "allData" before getting the plot interps and plotting the points 
+            // - need "selectThese" to be determined first - any other way and asynchronous loading will mess it up
+            allData = calcIndices(allData); //reset global - calculate the spectral indices
+            allDataRGBcolor = scaledRGB(allData, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, allData.Values.length); //reset global - calculate the rbg color
+            allData = calcDecDate(allData); //could wrap this into data appending push function
+            allDecdate = [];
+
+            allData.Values.forEach(function(v){
+                allDecdate.push(v.decDate);
+            })
+
+            //get the plot interpretations
+            $.getJSON(getUrls(sessionInfo).plotInterp).done(function(vertices){
+                if (vertices.length > 0 && vertices[0].plotid != sessionInfo.plotID) {
+                    return;
+                }
+
+                vertInfo = [];
+                vertices.forEach(function(v) {
+                    vertInfo.push({
+                        year: v.image_year,
+                        julday: v.image_julday,
+                        index: yearList.indexOf(v.image_year),//idx,
+                        landUse: {
+                            primary: {
+                                landUse: v.dominant_landuse,
+                                notes: parseNote(v.dominant_landuse_notes, 'landuse')
+                            },
+                            secondary: {
+                                landUse: v.secondary_landuse,
+                                notes: parseNote(v.secondary_landuse_notes, 'landuse')
+                            }
+                        },
+                        landCover: {
+                            landCover: v.dominant_landcover,
+                            other: parseNote(v.dominant_landcover_notes, 'landcover')
+                        },
+                        changeProcess: {
+                            changeProcess: v.change_process,
+                            notes: parseNote(v.change_process_notes, 'process')
+                        }
+                    });
+                });
+
+                //fill in the comment box and the isExampleCheckbox
+                $.getJSON(getUrls(sessionInfo).plotComment).done(function(commentObj){
+                    $("#commentInput").val(commentObj.comment);
+                    $("#isExampleCheckbox").prop("checked",commentObj.is_example == 1);
+                });
+
+                //check to see if vert info has been filled in for this plot
+                if(vertInfo.length !=0){
+                    for(var i=0;i<vertInfo.length;i++){
+                        selectThese.push(vertInfo[i].index); //reset global
+                    }
+                } else{
+                    selectThese = [0,lastIndex]
+                    for(var i=0;i<selectThese.length;i++){
+                        vertInfo.push({image_year:origData[selectThese[i]].image_year,image_julday:origData[selectThese[i]].image_julday,index:selectThese[i],iid:origData[selectThese[i]].iid,isVertex:true,landUse:{
+                                primary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}},
+                                secondary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}}
+                            },landCover:{landCover:"",other:{trees:false,shrubs:false,grassForbHerb:false,impervious:false,naturalBarren:false,snowIce:false,water:false}},changeProcess:{changeProcess:"",notes:{natural:false,prescribed:false,sitePrepFire:false,airphotoOnly:false,clearcut:false,thinning:false,flooding:false,reserviorLakeFlux:false,wetlandDrainage:false}}})
+                    }
+                }
+
+                fillInForm() //fill out the form inputs
+                plotInt(); //draw the points
+                makeChipInfo("json", origData)
+                appendSrcImg(); //append the src imgs
+                appendChips("annual",selectThese); //append the chip div/canvas/img set
+
+                //once the imgs have loaded make the chip info and draw the img to the canvas and display the time-lapse feature
+                $("#img-gallery").imagesLoaded(function(){
+                    //makeChipInfo("json", origData); //chip info array gets set in "appendChips" gets filled out here because we have to wait until the imgs have loaded to get their height (used when chip strip is the src - not needed when chips are singles)
+                    drawAllChips("annual");	//draw the imgs to the canvas
+                });
+            });
+        });
+    });
+}
+
+/**
+ * Populate the project list when #projectList element finishes loading
+ * 
+ * @param {*} sessionInfo 
+ */
 function addProjectData(sessionInfo){
     if (tsDashMessage !== undefined){
         //no need to load project list in dash mode
@@ -330,12 +649,13 @@ function addProjectData(sessionInfo){
                                 data-ts-end-year="${tsConfig.tsEndYear}"
                                 data-num-plots="${tsConfig.numPlots}">${object[i].name}</li>`;
 
-            // $("#projectList").append('<li value="' + object[i].id + '" data-size="' + 1 + '" data-ts-config="' + 'JSON.stringify(tsConfig)' + '">'+object[i].name+'</li>')
             $("#projectList").append(prjItem);
             packetInfo[object[i].id] = object[i].packet_ids === undefined ? null : object[i].packet_ids;
         }
     });
 }
+/*********************** End Setion 1. Retrieving TimeSync Interpretation ***********************/
+/************************************************************************************************/
 
 
 
@@ -359,7 +679,7 @@ $('#exportBtn').click(function(event) {
 });
 
 $('#syncWithCEO').click(function(event) {
-    console.log(vertInfo);
+    console.log("TO BE IMPLEMENTED.");
 });
 
 
@@ -593,7 +913,7 @@ $("body").on("click", "#plotList li", function(e){
     var index = $("#plotList li").index($(this));
     sessionInfo.plotID = $(this).text().trim();
     sessionInfo.currentLocation = $(this).data().center;
-    sessionInfo.packet = $(this).data().packet;
+    // sessionInfo.packet = $(this).data().packet;
 
     currentDomain = getSetting(sessionInfo.projectID, sessionInfo.plotID, defaultDomain)
     currentDomain.dirty = 0; //need to reset this since it is "clean" now
@@ -1272,6 +1592,10 @@ $(document).on({
 },".chipHolder.annual, circle.data")
 
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
 //define function to calculate stretched 8-bit color array by spectral index
 function calcColor(data, specIndex, stretch, n_stdev, len) {
     var dataC = $.extend(true, {}, data); //make a copy the data so the original is not altered by the min/max setting
@@ -1517,62 +1841,6 @@ $(window).on("beforeunload", function(){ //catches exist buttons
         chipstripwindow.close();
     }
 })
-
-//function to prepare vert info to be posted to the server
-function saveVertInfoOSU(sessionInfo, vertInfo){
-    //first deal with the vertInfo
-    //package up the vert info
-    if(typeof vertInfo === 'undefined' | sessionInfo.projectID == "" | sessionInfo.plotID == "" ){return}
-
-    if (!sessionInfo.isDirty) {
-        return;
-    }
-
-    var vertInfoSave = {
-        "vertInfo": vertInfo,   //array of objects � see below for the keys
-        "projectID": sessionInfo.projectID,   //integer
-        "userID": sessionInfo.userID,   //integer
-        "plotID": sessionInfo.plotID,   //integer
-        "tsa": sessionInfo.tsa   //integer
-    }
-
-    vertInfoSave = JSON.stringify(vertInfoSave); //make vert info object into a string
-
-    //YANG: DISABLED FOR TESTING ---- TODO: REABLE !!!!!!!!!!
-    // $.post(getUrls(sessionInfo).vertInfoSave, {"vertInfoSave":vertInfoSave})
-    //     .fail(function(){
-    //         alert("Failed to save vertInfo");
-    //     });
-
-    //deal with the comment
-    var commentText = $("#commentInput").val(); //get the comment
-    //if(commentText != ""){ //check to see if there is a comment - if so then send it to the server - commented because we want to save comment eachtime because the is_complete check is included now (2/22/16)
-    var done = checkPlot(sessionInfo, vertInfo) == true ? 1:0
-    var example = $("#isExampleCheckbox").prop("checked") == true ? 1:0
-    //package up the comment info
-    var commentInfo = {
-        "projectID": sessionInfo.projectID,
-        "tsa": sessionInfo.tsa,
-        "plotID": sessionInfo.plotID,
-        "userID": sessionInfo.userID,
-        "comment": commentText, //,
-        "isComplete": done,
-        "isExample":example
-    }
-
-    //make comment object into a string
-    commentInfo = JSON.stringify(commentInfo);
-
-    //send the comment to the server
-    //YANG: DISABLED FOR TESTING ---- TODO: REABLE !!!!!!!!!!
-    // $.post(getUrls(sessionInfo).commentSave, {"comment":commentInfo})
-    //     .fail(function(){
-    //         alert("Failed to save plot comment");
-    //     });
-
-    sessionInfo.isDirty = false;
-    //} //end bracket for if(commentText != "")
-}
 
 //function to prepare vert info to be posted to the server
 function saveVertInfo(sessionInfo, vertInfo){
@@ -2281,17 +2549,17 @@ function fillInForm(){
 
     //fill in segment form
     for(var i=0;i<len-1;i++){
-        var yearStart = vertInfo[i].year
-        var yearEnd = vertInfo[i+1].year
+        var yearStart = vertInfo[i].image_year;
+        var yearEnd = vertInfo[i+1].image_year;
         $("#segmentsFormTbl").append('<tr class="segment"><td class="highlightIt"><span class="glyphicon glyphicon-search"></span></td><td>'+yearStart+'</td><td>'+yearEnd+'</td><td class="changeProcessInput formDrop"></td></tr>');
-        $(".changeProcessInput").eq(i).text(vertInfo[i+1].changeProcess.changeProcess)
+        $(".changeProcessInput").eq(i).text(vertInfo[i+1].changeProcess.changeProcess);
     }
     //fill in vertex form
     for(i=0; i < len; i++){
         yearStart = vertInfo[i].year;
         $("#verticesFormTbl").append('<tr class="vertex"><td class="highlightIt"><span class="glyphicon glyphicon-search"></span></td><td>'+yearStart+'</td><td class="landUseInput formDrop lulc"></td><td class="landCoverInput formDrop lulc"></td></tr>');
-        $(".landUseInput").eq(i).text(vertInfo[i].landUse.primary.landUse)
-        $(".landCoverInput").eq(i).text(vertInfo[i].landCover.landCover)
+        $(".landUseInput").eq(i).text(vertInfo[i].landUse.primary.landUse);
+        $(".landCoverInput").eq(i).text(vertInfo[i].landCover.landCover);
     }
 }
 
