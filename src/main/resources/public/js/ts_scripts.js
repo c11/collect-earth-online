@@ -168,6 +168,7 @@ function getUrls(sessionInfo, year){
 /**
  * parse the data from server to fit local data usage requirement.
  * TODO: restruture this.
+ * FIXME: this function should not needed with GEE. Restructure GEE return scaled data directly.
  * @param {*} origData 
  * @param {*} i 
  */
@@ -202,7 +203,7 @@ function processAnnualSpectrals(tsdata) {
   n_chips = origData.length;
   lastIndex = n_chips - 1;
   data = {"Values": []};
-  allData = {"Values": []};
+  // allData = {"Values": []};
   chipInfo = {useThisChip:[],
               canvasIDs:[],
               imgIDs:[],
@@ -240,6 +241,28 @@ function processAnnualSpectrals(tsdata) {
   }
 }
 
+/**
+ * parse all spectral data
+ * 
+ * //FIXME: improve efficienc in to avoid unnecessary loop.
+ * @param {*} dat 
+ */
+function processAllSpectrals(dat) {
+  allData = {"Values": []};
+  dat.forEach((v,i) => {
+    allData.Values.push(parseSpectralData(dat, i));
+  });
+  //make sure that all of the urls have been added to "allData" before getting the plot interps and plotting the points 
+  // - need "selectThese" to be determined first - any other way and asynchronous loading will mess it up
+  allData = calcIndices(allData); //reset global - calculate the spectral indices
+  allDataRGBcolor = scaledRGB(allData, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, allData.Values.length); //reset global - calculate the rbg color
+  allData = calcDecDate(allData); //could wrap this into data appending push function
+  allDecdate = [];
+
+  allData.Values.forEach(function(v){
+      allDecdate.push(v.decDate);
+  });
+}
 /**
  * extract previous interpretation
  * NOTE: this is not a pure function.
@@ -320,163 +343,40 @@ function updateUI() {
  * @param {*} ylabel 
  */
 function getData(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,activeBlueSpecIndex,ylabel){
-    let urls = getUrls(sessionInfo);
-    //load interpretation
-    fetch(urls.vertices)
-      .then(res => res.json())
-      .then(tsdata=> {
-        console.log(tsdata);
+  let urls = getUrls(sessionInfo);
+  //load interpretation
+  fetch(urls.vertices)
+    .then(res => res.json())
+    .then(tsdata=> {
+      console.log(tsdata);
 
-        //TODO: is it possible that there is no timeSync property in the data?
-        processAnnualSpectrals(tsdata.timeSync);
-        extractInterpretation(tsdata.timeSync, tsdata.comment===undefined ? "" : tsdata.comment, tsdata.isExample);
-        updateUI();
-        //get all spectral data
-        //update ui
-      })
-      .catch(error=>{
-        //no interpretation has been saved
-        //get data from GEE
-        fetch(urls.selectedSpec)
-          .then(res => res.json())
-          .then(tsdata=> {
-            processAnnualSpectrals(tsdata.timeseries);
-            extractInterpretation(tsdata.timeseries, "", 0);
-            updateUI();
-          })
-          .catch(err=> {
-            console.log(err);
-            alert("Error retrieving plot spectral data.");
-          });
-      });
-
-    //retrieve all spectral data
-
-    return;
-
-    // $.getJSON(getUrls(sessionInfo).selectedSpec).done(function(returnedData){ //origData
-    fetch(getUrls(sessionInfo).selectedSpec).then(function(resp){
-        return resp.json();
-    }).then(function(returnedData){
-        console.log(returnedData);
-
-        // $("#targetDOY").text("(Target DOY: "+returnedData[0].target_day + ")")
-        $("#targetDOY").text("(Target DOY: "+sessionInfo.tsTargetDay + ")");
-        origData = returnedData.timeseries; //reset global
-        n_chips = origData.length; //reset global
-        lastIndex = n_chips-1; //reset global
-        data = {"Values":[]}; //reset global
-        allData = {"Values":[]}; //reset global
-        chipInfo = {useThisChip:[],canvasIDs:[],imgIDs:[],sxOrig:[],syOrig:[],sWidthOrig:[],sxZoom:[],syZoom:[],sWidthZoom:[],chipsInStrip:[],year:[],julday:[],src:[],sensor:[]}; //reset global
-        yearList = []; //reset gobal
-
-        for(var i=0;i<n_chips;i++){
-            data.Values.push(parseSpectralData(origData,i));
-            yearList.push(origData[i].image_year);
-        }
-
-        //set the default x domain max to the max year of the data, plus 1 to get a line at the end of the year
-        var maxXdomain = d3.max(yearList)+1;
-        var minXdomain = d3.min(yearList)-1;
-        defaultDomain.year.max = maxXdomain;
-        currentDomain.year.max = maxXdomain;
-        defaultDomain.year.min = minXdomain;
-        currentDomain.year.min = minXdomain;
-
-
-        data = calcIndices(data); //reset global - calculate the spectral indices
-        rgbColor = scaledRGB(data, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, n_chips); //reset global - calculate the rbg color
-        data = calcDecDate(data); //could wrap this into data appending push function
-        /*	YANG: 2016.08.06: warren want to change it to global stretch
-        Yang: 2016.08.31: warren want to change it back to always local stretch */
-        if (!currentDomain.hasCustomizedXY) {
-            updateStretch();
-        }
-
-        //get spectral data for all the images
-        $.getJSON(getUrls(sessionInfo).allSpec).done(function(returnedData){
-            for(var i=0;i<returnedData.timeseries.length;i++){
-                allData.Values.push(parseSpectralData(returnedData.timeseries,i));
-            }
-            //make sure that all of the urls have been added to "allData" before getting the plot interps and plotting the points 
-            // - need "selectThese" to be determined first - any other way and asynchronous loading will mess it up
-            allData = calcIndices(allData); //reset global - calculate the spectral indices
-            allDataRGBcolor = scaledRGB(allData, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, allData.Values.length); //reset global - calculate the rbg color
-            allData = calcDecDate(allData); //could wrap this into data appending push function
-            allDecdate = [];
-
-            allData.Values.forEach(function(v){
-                allDecdate.push(v.decDate);
-            })
-
-            //get the plot interpretations
-            $.getJSON(getUrls(sessionInfo).plotInterp).done(function(vertices){
-                if (vertices.length > 0 && vertices[0].plotid != sessionInfo.plotID) {
-                    return;
-                }
-
-                vertInfo = [];
-                vertices.forEach(function(v) {
-                    vertInfo.push({
-                        year: v.image_year,
-                        julday: v.image_julday,
-                        index: yearList.indexOf(v.image_year),//idx,
-                        landUse: {
-                            primary: {
-                                landUse: v.dominant_landuse,
-                                notes: parseNote(v.dominant_landuse_notes, 'landuse')
-                            },
-                            secondary: {
-                                landUse: v.secondary_landuse,
-                                notes: parseNote(v.secondary_landuse_notes, 'landuse')
-                            }
-                        },
-                        landCover: {
-                            landCover: v.dominant_landcover,
-                            other: parseNote(v.dominant_landcover_notes, 'landcover')
-                        },
-                        changeProcess: {
-                            changeProcess: v.change_process,
-                            notes: parseNote(v.change_process_notes, 'process')
-                        }
-                    });
-                });
-
-                //fill in the comment box and the isExampleCheckbox
-                $.getJSON(getUrls(sessionInfo).plotComment).done(function(commentObj){
-                    $("#commentInput").val(commentObj.comment);
-                    $("#isExampleCheckbox").prop("checked",commentObj.is_example == 1);
-                });
-
-                //check to see if vert info has been filled in for this plot
-                if(vertInfo.length !=0){
-                    for(var i=0;i<vertInfo.length;i++){
-                        selectThese.push(vertInfo[i].index); //reset global
-                    }
-                } else{
-                    selectThese = [0,lastIndex]
-                    for(var i=0;i<selectThese.length;i++){
-                        vertInfo.push({image_year:origData[selectThese[i]].image_year,image_julday:origData[selectThese[i]].image_julday,index:selectThese[i],iid:origData[selectThese[i]].iid,isVertex:true,landUse:{
-                                primary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}},
-                                secondary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}}
-                            },landCover:{landCover:"",other:{trees:false,shrubs:false,grassForbHerb:false,impervious:false,naturalBarren:false,snowIce:false,water:false}},changeProcess:{changeProcess:"",notes:{natural:false,prescribed:false,sitePrepFire:false,airphotoOnly:false,clearcut:false,thinning:false,flooding:false,reserviorLakeFlux:false,wetlandDrainage:false}}})
-                    }
-                }
-
-                fillInForm() //fill out the form inputs
-                plotInt(); //draw the points
-                makeChipInfo("json", origData)
-                appendSrcImg(); //append the src imgs
-                appendChips("annual",selectThese); //append the chip div/canvas/img set
-
-                //once the imgs have loaded make the chip info and draw the img to the canvas and display the time-lapse feature
-                $("#img-gallery").imagesLoaded(function(){
-                    //makeChipInfo("json", origData); //chip info array gets set in "appendChips" gets filled out here because we have to wait until the imgs have loaded to get their height (used when chip strip is the src - not needed when chips are singles)
-                    drawAllChips("annual");	//draw the imgs to the canvas
-                });
-            });
+      //TODO: is it possible that there is no timeSync property in the data?
+      processAnnualSpectrals(tsdata.timeSync);
+      extractInterpretation(tsdata.timeSync, tsdata.comment===undefined ? "" : tsdata.comment, tsdata.isExample);
+      updateUI();
+      //get all spectral data
+      //update ui
+    })
+    .catch(error=>{
+      //no interpretation has been saved
+      //get data from GEE
+      fetch(urls.selectedSpec)
+        .then(res => res.json())
+        .then(tsdata=> {
+          processAnnualSpectrals(tsdata.timeseries);
+          extractInterpretation(tsdata.timeseries, "", 0);
+          updateUI();
+        })
+        .catch(err=> {
+          console.log(err);
+          alert("Error retrieving plot spectral data.");
         });
     });
+
+  //retrieve all spectral data
+  fetch(urls.allSpec)
+    .then(res=>res.json())
+    .then(dat => processAllSpectrals(dat.timeseries));
 }
 
 /**
@@ -3143,6 +3043,8 @@ $("body").on("click", ".previousChip, .nextChip", function(e){ //need to use bod
     //TODO: no candidate image, need to inform user.
     if (candidate === null) return;
 
+    sessionInfo.isDirty = true;
+
     //now replace the image chip
     let	message = {
         "action":"replace_chip",
@@ -3163,10 +3065,25 @@ $("body").on("click", ".previousChip, .nextChip", function(e){ //need to use bod
 
     //fill in the data for the new image selection
     data.Values[thisIndex] = candidate;
+
+    //FIXME: (URGENT) remove this round of back transformation by removing function parseSpectralData() 
+    {
+      origData[thisIndex].B1 = candidate.B1 * 10000;
+      origData[thisIndex].B2 = candidate.B2 * 10000;
+      origData[thisIndex].B3 = candidate.B3 * 10000;
+      origData[thisIndex].B4 = candidate.B4 * 10000;
+      origData[thisIndex].B5 = candidate.B5 * 10000;
+      origData[thisIndex].B7 = candidate.B7 * 10000;
+      origData[thisIndex].cfmask = candidate.cloud_cover;
+      origData[thisIndex].image_julday = candidate.image_julday;
+      origData[thisIndex].image_year = candidate.image_year;
+      origData[thisIndex].iid = candidate.iid;
+    }
+
     chipInfo.src[thisIndex]= {...message.src};
     chipInfo.julday[thisIndex]=candidate.image_julday;
 
-    //TODO: (YANG) this implementation is awkard!
+    //FIXME: (YANG) this implementation is awkard! Should be replaced.
     //replace the chip
     replaceChip(message); //replace a chip with one selected in the remote window
 
@@ -3176,9 +3093,16 @@ $("body").on("click", ".previousChip, .nextChip", function(e){ //need to use bod
     //change the spectral plot
     changePlotPoint();
 
+    //Is the replaced chip a vertex?
+    vertexFound = _.find(vertInfo, ['image_year', target.image_year]);
+    if (vertexFound !== undefined) {
+      vertexFound.image_julday = candidate.image_julday;
+    }
+
     //save the new image selection to the server so it will be the default in the future
     //TODO: NEXT HERE!!!!
-    changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].image_year, newDOY=newDOY, oldDOY=oldDOY) //changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].Year, newDOY=remoteMessage.julday, oldDOY=data.Values[remoteMessage.originChipIndex].doy)
+    //FIXME: remove the changeDefaultChip logic with GEE implementation.
+    // changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].image_year, newDOY=newDOY, oldDOY=oldDOY) //changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].Year, newDOY=remoteMessage.julday, oldDOY=data.Values[remoteMessage.originChipIndex].doy)
 
 });
 
