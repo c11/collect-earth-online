@@ -24,6 +24,7 @@ function configTimeSyncDash() {
 $(document).ready(function() {
     configTimeSyncDash();
     setChipGalleryLength();
+    toggleSpinner(false);
 });
 
 function setChipGalleryLength(){
@@ -278,6 +279,18 @@ function extractInterpretation(tsdata, comment, isExample) {
   }
 }
 
+function toggleSpinner(show) {
+  console.log('[toggleSpinner]', show)
+  if (show) {
+    $('#spinner').removeClass('stop');
+    $('#spinner').show();
+  }
+  else {
+    $('#spinner').addClass('stop');
+    $('#spinner').hide();
+  }
+}
+
 function updateUI() {
   //update UI
   fillInForm() //fill out the form inputs
@@ -295,6 +308,7 @@ function updateUI() {
     //until the imgs have loaded to get their height 
     //(used when chip strip is the src - not needed when chips are singles)
     drawAllChips("annual");	//draw the imgs to the canvas
+    toggleSpinner(false);
   });
 }
 
@@ -319,7 +333,7 @@ function updateUI() {
  * @param {*} activeRedSpecIndex 
  * @param {*} activeGreenSpecIndex 
  * @param {*} activeBlueSpecIndex 
- * @param {*} ylabel 
+ * @param {*} ylabel
  */
 function getData(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,activeBlueSpecIndex,ylabel){
   let urls = getUrls(sessionInfo);
@@ -670,6 +684,8 @@ $("body").on("click", "#plotList li", function(e){
 
     specIndex = $("#indexList li.active").attr('id');
     ylabel = $("#"+specIndex).text() //check to see if this one needs to be passed to the getData function
+
+    toggleSpinner(true);
 
     getData(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,activeBlueSpecIndex,ylabel)
 });

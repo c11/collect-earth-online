@@ -407,6 +407,7 @@
         <p id="targetDOY" class="header" style="float:right; padding-right:3px"></p> <!-- display:inline-block;  margin-right:3px -->
     </div>
     <div id="chip-gallery"></div>
+    <div id="spinner" class="loader stop"></div>
 </div>
 <div id="img-gallery"></div>
 
