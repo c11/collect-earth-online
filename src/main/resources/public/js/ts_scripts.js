@@ -146,9 +146,14 @@ var tsServer = 'https://localhost:8080';
 var geeServer = 'https://localhost:8888';
 var osuServer = 'https://timesync.forestry.oregonstate.edu/_ts3';
 
+/**
+ * FIXME: disect this funtion into fuction for each url.
+ * @param {*} sessionInfo 
+ * @param {*} year 
+ */
 function getUrls(sessionInfo, year){
     var urls = {
-        "annualSpec":   `${geeServer}/ts/spectrals/year/${year}/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}`,
+        // "annualSpec":   `${geeServer}/ts/spectrals/year/${year}/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}`,
         "allSpec":      `${geeServer}/ts/spectrals/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}`,
         "selectedSpec": `${geeServer}/ts/spectrals/day/${sessionInfo.tsTargetDay}/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}`,
         "projectList":  `${tsServer}/get-all-projects`,
@@ -409,6 +414,40 @@ function addProjectData(sessionInfo){
         }
     });
 }
+
+/**
+ * cache plot data from GEE
+ * 
+ * TODO: which mechanism should be used, localStorage or indexedDB?
+ * 
+ */
+var cacheWorker = new Worker('/js/ts_webworker.js');
+function preCache() {
+  let message = {
+    tsTargetDay: sessionInfo.tsTargetDay,
+    plots: sessionInfo.plots
+  }
+  cacheWorker.postMessage(message);
+}
+
+// function preCache() {
+//   sessionInfo.plots.map(p => {
+//     let sinfo = {
+//       tsTargetDay: sessionInfo.tsTargetDay,
+//       currentLocation: JSON.parse(p.center)
+//     };
+//     let urls = getUrls(sinfo);
+//     fetch(urls.selectedSpec)
+//      .then(res=>res.json())
+//      .then(response => {
+//        response.timeseries.map(spec => {
+//          console.log('fetch ', spec.iid);
+//          fetch(getImageChip(spec.iid));
+//        })
+//      })
+//   })
+// }
+
 /*********************** End Setion 1. Retrieving TimeSync Interpretation ***********************/
 /************************************************************************************************/
 
@@ -566,6 +605,9 @@ function appendPlots(sessionInfo){
         console.log(object);
         //TSCEO keep a copy of the plots list
         sessionInfo.plots = object;
+
+        preCache();
+
         for(var i=0;i<object.length;i++){
             //TSCEO: temporaly force to have value for is_complete and is_example
             object[i].is_complete = 0;
