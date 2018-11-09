@@ -103,7 +103,7 @@ public class JsonTimeSync implements TimeSync {
     }
 
     @Override
-    public String saveVertex(Request req, Response res) {
+    public synchronized String saveVertex(Request req, Response res) {
         var jsonInputs = parseJson(req.body()).getAsJsonObject();
         var projectId = jsonInputs.get("projectId").getAsString();
         var plotId = jsonInputs.get("plotId").getAsString();
