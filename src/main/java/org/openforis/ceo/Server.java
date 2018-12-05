@@ -22,6 +22,7 @@ import org.openforis.ceo.db_api.Projects;
 import org.openforis.ceo.db_api.TimeSync;
 import org.openforis.ceo.db_api.Users;
 import org.openforis.ceo.env.CeoConfig;
+import org.openforis.ceo.env.CorsFilter;
 import org.openforis.ceo.local.JsonGeoDash;
 import org.openforis.ceo.local.JsonImagery;
 import org.openforis.ceo.local.JsonInstitutions;
@@ -71,7 +72,7 @@ public class Server implements SparkApplication {
 
         // Serve static files from src/main/resources/public/
         staticFileLocation("/public");
-
+        CorsFilter.apply();
         // Allow token-based authentication if users are not logged in and we are using the COLLECT database
         if (databaseType.equals("COLLECT")) {
             before("/*", new CeoAuthFilter());
