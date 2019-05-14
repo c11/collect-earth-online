@@ -48,7 +48,7 @@ onmessage = function(e) {
      .then(response => {
        response.timeseries.map(spec => {
          console.log('fetch ', spec.iid);
-         fetch(getImageChip(spec.iid, sinfo.currentLocation.coordinates));
+         fetch(getImageChip(spec.iid, sinfo.currentLocation.coordinates), {mode: "no-cors"});
        });
      })
      .catch(err=>this.console.log(err));
