@@ -139,18 +139,21 @@
                     <li id="NBR">NBR</li>
                 </ul>
             </div>
-            <!-- Yang: Hide chip selection: only use TC for now.
+
             <div class="btn-group specPlotDrop" role="group">
                 <button id="btnChipSet" class="btn btn-default dropdown-toggle specPlotBtn" type="button">
+                    <!--
                     <div><strong>Chip Set</strong>:<br><small>SWIR2,NIR,Red</small><span class="caret specPlot"></span></div>
+                    -->
+                    <div><strong>Chip Set</strong>:<br><small>TM TC</small><span class="caret specPlot"></span></div>
                 </button>
                 <ul class="dropdown-menu specPlot chipSetList" id="chipSetList">
-                    <li id="chipSetBGW">TM TC</li>
-                    <li class="active" id="chipSet743">SWIR2,NIR,Red</li>
+                    <li class="active" id="chipSetBGW">TM TC</li>
+                    <li id="chipSet743">SWIR2,NIR,Red</li>
                     <li id="chipSet432">NIR,Red,Green</li>
                 </ul>
             </div>
-
+            <!-- Yang: Hide chip selection: only use TC for now.
             <div id="btnRed" class="btn-group specPlotDrop" role="group" style="display:none">
                 <button class="btn btn-default dropdown-toggle specPlotBtn" type="button">
                     <div><strong>R</strong><small>GB</small>:<br><small>TC Brightness</small><span class="caret specPlot"></span></div>
@@ -234,6 +237,9 @@
 
 
     <div id="formsDiv" class="sectionDiv">
+        <button id="saveBtn" class="btn btn-default btn-sm" type="button">
+        Save
+        </button>
         <p class="header">Interpretation Forms</p>
         <ul class="test">
             <li id="segmentsFormTab" class="selected" style="border-top-left-radius:4px; text-align:center;">Segments

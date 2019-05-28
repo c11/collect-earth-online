@@ -350,9 +350,12 @@ class Collection extends React.Component {
     }
 
     showTimeSync(plot) {
+        console.log('[showTimeSync]', plot);
+
         const message = {
             "projectID": this.props.projectId,
-            "plotID": plot.id,
+            "plotID": plot.plotId,
+            "id": plot.id,
             "currentLocation": plot.center
         }
 

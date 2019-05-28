@@ -184,6 +184,13 @@ public class Views {
                 Map.of("interpreter", getAccountId));
     }
     
+    public static Route chipQa(FreeMarkerEngine freemarker) {
+        Function<Request, String> getAccountId = (req) -> req.params(":id");
+        return makeAuthenticatedRoute("TS-Chip-QA", freemarker,
+                Map.of("interpreter", getAccountId));
+    }
+
+
     // public static Route timeSyncDash(FreeMarkerEngine freemarker) {
     //     Function<Request, String> getAccountId = (req) -> ""; //req.params(":id");
     //     return makeAuthenticatedRoute("TimeSync", freemarker,

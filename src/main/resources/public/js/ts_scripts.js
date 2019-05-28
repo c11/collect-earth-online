@@ -3,12 +3,20 @@
 /////INITIAL PAGE SETUP////////////////////////////////////////////////////////////////////
 function configTimeSyncDash() {
     if (tsDashMessage === undefined) {
+        $('#saveBtn').hide();
         return;
     }
     else{
         //hide plot list
         $('#plotSelectionDiv').hide();
         $('#topSection').hide();
+        $('#saveBtn').show();
+
+        console.log('[configTimeSyncDash]', sessionInfo);
+        if (sessionInfo.isDirty) {
+            console.log('[configTimeSyncDash]', 'saving vertex information');
+            saveVertInfo(sessionInfo, vertInfo);
+        }
 
         let ceoPlot = JSON.parse(tsDashMessage);
         ceoPlot.currentLocation = JSON.parse(ceoPlot.currentLocation);
@@ -22,6 +30,7 @@ function configTimeSyncDash() {
 
 //set the bottom of the page length
 $(document).ready(function() {
+    console.log('document ready');
     configTimeSyncDash();
     setChipGalleryLength();
     toggleSpinner(false);
@@ -142,16 +151,16 @@ var windowW = $(window).width();
 /************************************************************************************************/
 /*********************** BeginSetion 1. Retrieving TimeSync Interpretation **********************/
 
-var tsServer = 'https://localhost:8080';
+var tsServer = 'http://localhost:8080';
 var geeServer = 'https://localhost:8888';
-var osuServer = 'https://timesync.forestry.oregonstate.edu/_ts3';
+var osuServer = 'http://timesync.gis.usu.edu/_ts3';
 
 /**
  * FIXME: disect this funtion into fuction for each url.
  * @param {*} sessionInfo 
  * @param {*} year 
  */
-function getUrls(sessionInfo, year){
+function getUrlsReact(sessionInfo, year){
     var urls = {
         // "annualSpec":   `${geeServer}/ts/spectrals/year/${year}/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}`,
         "allSpec":      `${geeServer}/ts/spectrals/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}`,
@@ -170,6 +179,40 @@ function getUrls(sessionInfo, year){
     }
     return urls;
 }
+
+function getUrls(sessionInfo, year){
+    var urls = {
+        "annualSpec":   osuServer + '/data/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID+'/'+year,
+        // "allSpec":      osuServer + '/data/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,	
+        "selectedSpec": osuServer + '/data/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,
+        "projectList":  `${tsServer}/get-all-projects`,
+        "plotList":     `${tsServer}/get-project-plots/${sessionInfo.projectID}/${sessionInfo.numPlots}`,
+        // "plotList":     osuServer + '/plot/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa + '/' + sessionInfo.packet,
+        "vertInfoSave": osuServer + '/vertex/save',
+        // "vertices":     `${tsServer}/timesync/vertex/${sessionInfo.userID}/${sessionInfo.projectID}/${sessionInfo.plotID}/${sessionInfo.packet}`,
+
+        "plotInterp":   osuServer + '/index.php/vertex/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,
+        "plotComment":  osuServer + '/comment/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,
+        // "respDesign":   osuServer + '/config/response/'+sessionInfo.projectID,
+        "chipOverRide": osuServer + '/image/override',
+        // "vertInfoSave": osuServer + '/vertex/save',
+        "commentSave":  osuServer + '/comment/save'
+    }
+    // var urls = {
+    //     "annualSpec": server + '/data/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID+'/'+year,
+    //     "selectedSpec": server + '/data/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,					
+    //     "projectList": server + '/project/'+sessionInfo.userID,
+    //     "plotInterp": server + '/index.php/vertex/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,
+    //     "plotComment": server + '/comment/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,
+    //     "plotList": server + '/plot/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa + '/' + sessionInfo.packet,
+    //     "respDesign": server + '/config/response/'+sessionInfo.projectID,
+    //     "chipOverRide": server + '/image/override',
+    //     "vertInfoSave": server + '/vertex/save',
+    //     "commentSave": server + '/comment/save'
+    // }
+    return urls	
+}
+
 
 /**
  * process annual spectral data with or without interpretation
@@ -234,8 +277,8 @@ function processAnnualSpectrals(tsdata) {
 function processAllSpectrals(dat) {
   allData = {"Values": []};
   dat.forEach((v,i) => {
-    // allData.Values.push(parseSpectralData(dat, i));
-    allData.Values.push({...dat[i]});
+    allData.Values.push(parseSpectralData(dat, i));
+    // allData.Values.push({...dat[i]});
   });
   //make sure that all of the urls have been added to "allData" before getting the plot interps and plotting the points 
   // - need "selectThese" to be determined first - any other way and asynchronous loading will mess it up
@@ -254,35 +297,35 @@ function processAllSpectrals(dat) {
  * 
  * @param {*} tsdata 
  */
-function extractInterpretation(tsdata, comment, isExample) {
-  vertInfo = [];
+// function extractInterpretation(tsdata, comment, isExample) {
+//   vertInfo = [];
 
-  comment = comment; //tsdata.comment===undefined ? "" : tsdata.comment;
-  isExample = isExample; //tsdata.isExample;
+//   comment = comment; //tsdata.comment===undefined ? "" : tsdata.comment;
+//   isExample = isExample; //tsdata.isExample;
 
-  tsdata.forEach( (v, i) => {
-    if (v.isVertex) {
-      //TODO: is shallow copying ok here.
-      v.index = i;
-      vertInfo.push(_.pick(v, ['image_year', 'image_julday', 'index', 'landUse', 'landCover', 'changeProcess','isVertex']));
-    }
-  })
+//   tsdata.forEach( (v, i) => {
+//     if (v.isVertex) {
+//       //TODO: is shallow copying ok here.
+//       v.index = i;
+//       vertInfo.push(_.pick(v, ['image_year', 'image_julday', 'index', 'landUse', 'landCover', 'changeProcess','isVertex']));
+//     }
+//   })
 
-  //check to see if vert info has been filled in for this plot
-  if(vertInfo.length !=0){
-    for(var i=0;i<vertInfo.length;i++){
-        selectThese.push(vertInfo[i].index); //reset global
-    }
-  } else{
-    selectThese = [0,tsdata.length-1];
-    for(var i=0;i<selectThese.length;i++){
-        vertInfo.push({image_year:origData[selectThese[i]].image_year,image_julday:origData[selectThese[i]].image_julday,index:selectThese[i],iid:origData[selectThese[i]].iid,isVertex:true,landUse:{
-                primary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}},
-                secondary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}}
-            },landCover:{landCover:"",other:{trees:false,shrubs:false,grassForbHerb:false,impervious:false,naturalBarren:false,snowIce:false,water:false}},changeProcess:{changeProcess:"",notes:{natural:false,prescribed:false,sitePrepFire:false,airphotoOnly:false,clearcut:false,thinning:false,flooding:false,reserviorLakeFlux:false,wetlandDrainage:false}}})
-    }
-  }
-}
+//   //check to see if vert info has been filled in for this plot
+//   if(vertInfo.length !=0){
+//     for(var i=0;i<vertInfo.length;i++){
+//         selectThese.push(vertInfo[i].index); //reset global
+//     }
+//   } else{
+//     selectThese = [0,tsdata.length-1];
+//     for(var i=0;i<selectThese.length;i++){
+//         vertInfo.push({image_year:origData[selectThese[i]].image_year,image_julday:origData[selectThese[i]].image_julday,index:selectThese[i],iid:origData[selectThese[i]].iid,isVertex:true,landUse:{
+//                 primary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}},
+//                 secondary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}}
+//             },landCover:{landCover:"",other:{trees:false,shrubs:false,grassForbHerb:false,impervious:false,naturalBarren:false,snowIce:false,water:false}},changeProcess:{changeProcess:"",notes:{natural:false,prescribed:false,sitePrepFire:false,airphotoOnly:false,clearcut:false,thinning:false,flooding:false,reserviorLakeFlux:false,wetlandDrainage:false}}})
+//     }
+//   }
+// }
 
 function toggleSpinner(show) {
   console.log('[toggleSpinner]', show)
@@ -340,42 +383,42 @@ function updateUI() {
  * @param {*} activeBlueSpecIndex 
  * @param {*} ylabel
  */
-function getData(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,activeBlueSpecIndex,ylabel){
-  let urls = getUrls(sessionInfo);
-  //load interpretation
-  fetch(urls.vertices)
-    .then(res => res.json())
-    .then(tsdata=> {
-      console.log(tsdata);
+// function getDataReact(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,activeBlueSpecIndex,ylabel){
+//   let urls = getUrls(sessionInfo);
+//   //load interpretation
+//   fetch(urls.vertices)
+//     .then(res => res.json())
+//     .then(tsdata=> {
+//       console.log(tsdata);
 
-      //TODO: is it possible that there is no timeSync property in the data?
-      processAnnualSpectrals(tsdata.timeSync);
-      extractInterpretation(tsdata.timeSync, tsdata.comment===undefined ? "" : tsdata.comment, tsdata.isExample);
-      updateUI();
-      //get all spectral data
-      //update ui
-    })
-    .catch(error=>{
-      //no interpretation has been saved
-      //get data from GEE
-      fetch(urls.selectedSpec)
-        .then(res => res.json())
-        .then(tsdata=> {
-          processAnnualSpectrals(tsdata.timeseries);
-          extractInterpretation(tsdata.timeseries, "", 0);
-          updateUI();
-        })
-        .catch(err=> {
-          console.log(err);
-          alert("Error retrieving plot spectral data.");
-        });
-    });
+//       //TODO: is it possible that there is no timeSync property in the data?
+//       processAnnualSpectrals(tsdata.timeSync);
+//       extractInterpretation(tsdata.timeSync, tsdata.comment===undefined ? "" : tsdata.comment, tsdata.isExample);
+//       updateUI();
+//       //get all spectral data
+//       //update ui
+//     })
+//     .catch(error=>{
+//       //no interpretation has been saved
+//       //get data from GEE
+//       fetch(urls.selectedSpec)
+//         .then(res => res.json())
+//         .then(tsdata=> {
+//           processAnnualSpectrals(tsdata.timeseries);
+//           extractInterpretation(tsdata.timeseries, "", 0);
+//           updateUI();
+//         })
+//         .catch(err=> {
+//           console.log(err);
+//           alert("Error retrieving plot spectral data.");
+//         });
+//     });
 
-  //retrieve all spectral data
-  fetch(urls.allSpec)
-    .then(res=>res.json())
-    .then(dat => processAllSpectrals(dat.timeseries));
-}
+//   //retrieve all spectral data
+//   fetch(urls.allSpec)
+//     .then(res=>res.json())
+//     .then(dat => processAllSpectrals(dat.timeseries));
+// }
 
 /**
  * Populate the project list when #projectList element finishes loading
@@ -415,20 +458,203 @@ function addProjectData(sessionInfo){
     });
 }
 
+			//function to populate the project list when #projectList element finishes loading
+			// function addProjectData(sessionInfo){
+			// 	$.getJSON(getUrls(sessionInfo).projectList).done(function(object){
+			// 		for(var i=0;i<object.length;i++){
+			// 			$("#projectList").append('<li value="' + object[i].project_id + '" data-size="' + object[i].plot_size + '">'+object[i].project_code+'</li>')
+			// 			packetInfo[object[i].project_id] = object[i].packet_ids;
+			// 		}
+			// 	});
+			// }
+
+			function parseSpectralData(origData,i){
+				var vertInfoSpec = {
+                    "Year":origData[i].image_year,
+                    "doy":origData[i].image_julday,
+                    "image_year":origData[i].image_year,
+					"image_julday":origData[i].image_julday,
+					"B1":parseInt(origData[i].b1)/10000,
+					"B2":parseInt(origData[i].b2)/10000,
+					"B3":parseInt(origData[i].b3)/10000,
+					"B4":parseInt(origData[i].b4)/10000,
+					"B5":parseInt(origData[i].b5)/10000,
+					"B7":parseInt(origData[i].b7)/10000,
+					"cloud_cover": parseInt(origData[i].cloud_cover)
+				}
+				return vertInfoSpec
+			}
+
+
+			//DEFINE LOADING FUNCTIONS AND LISTENERS//
+			function getData(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,activeBlueSpecIndex,ylabel){
+				$.getJSON(getUrls(sessionInfo).selectedSpec).done(function(returnedData){ //origData
+					$("#targetDOY").text("(Target DOY: "+returnedData[0].target_day + ")")
+					origData = returnedData; //reset global
+					n_chips = origData.length; //reset global 
+					lastIndex = n_chips-1; //reset global
+					data = {"Values":[]}; //reset global
+					allData = {"Values":[]}; //reset global
+					chipInfo = {useThisChip:[],canvasIDs:[],imgIDs:[],sxOrig:[],syOrig:[],sWidthOrig:[],sxZoom:[],syZoom:[],sWidthZoom:[],chipsInStrip:[],year:[],julday:[],src:[],sensor:[]}; //reset global
+					yearList = []; //reset gobal				
+					
+					for(var i=0;i<n_chips;i++){
+						data.Values.push(parseSpectralData(origData,i));
+						yearList.push(origData[i].image_year);
+					}
+					
+					//set the default x domain max to the max year of the data, plus 1 to get a line at the end of the year
+					var maxXdomain = d3.max(yearList)+1;
+					var minXdomain = d3.min(yearList)-1;
+					defaultDomain.year.max = maxXdomain;
+					currentDomain.year.max = maxXdomain;
+					defaultDomain.year.min = minXdomain;
+					currentDomain.year.min = minXdomain;
+					
+					
+					data = calcIndices(data); //reset global - calculate the spectral indices
+					rgbColor = scaledRGB(data, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, n_chips); //reset global - calculate the rbg color
+					data = calcDecDate(data); //could wrap this into data appending push function
+/*	YANG: 2016.08.06: warren want to change it to global stretch 
+Yang: 2016.08.31: warren want to change it back to always local stretch */	
+					if (!currentDomain.hasCustomizedXY) {
+						updateStretch();
+					}
+/**/
+					var urlList = [];
+					var count = [];
+					for(var i=0;i<n_chips;i++){		
+						urlList.push(getUrls(sessionInfo, origData[i].image_year).annualSpec)							
+						count.push(0)
+					}
+					
+					urlList.forEach(function(listItem,index){
+						$.getJSON(listItem).done(function(returnedData){
+							for(var i=0;i<returnedData.length;i++){
+								allData.Values.push(parseSpectralData(returnedData,i));
+							}
+							//make sure that all of the urls have been added to "allData" before getting the plot interps and plotting the points - need "selectThese" to be determined first - any other way and asynchronous loading will mess it up
+							count[index] = 1//++;
+							if (d3.sum(count) == n_chips){
+								allData = calcIndices(allData); //reset global - calculate the spectral indices
+								allDataRGBcolor = scaledRGB(allData, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, allData.Values.length); //reset global - calculate the rbg color
+								allData = calcDecDate(allData); //could wrap this into data appending push function
+								allDecdate = [];
+								
+								allData.Values.forEach(function(v){
+									allDecdate.push(v.decDate)
+								})
+								
+								//get the plot interpretations					
+								$.getJSON(getUrls(sessionInfo).plotInterp).done(function(vertices){
+									if (vertices.length > 0 && vertices[0].plotid != sessionInfo.plotID) {
+										return;
+									}
+
+									vertInfo = [];
+									vertices.forEach(function(v) {
+										vertInfo.push({
+											year: v.image_year,
+											julday: v.image_julday,
+											index: yearList.indexOf(v.image_year),//idx,
+											landUse: {
+												primary: {
+													landUse: v.dominant_landuse,
+													notes: parseNote(v.dominant_landuse_notes, 'landuse')
+												},
+												secondary: {
+													landUse: v.secondary_landuse,
+													notes: parseNote(v.secondary_landuse_notes, 'landuse')
+												}
+											},
+											landCover: {
+												landCover: v.dominant_landcover,
+												other: parseNote(v.dominant_landcover_notes, 'landcover')
+											},
+											changeProcess: {
+												changeProcess: v.change_process,
+												notes: parseNote(v.change_process_notes, 'process')
+											}
+										});
+									});
+									
+									//fill in the comment box and the isExampleCheckbox
+									$.getJSON(getUrls(sessionInfo).plotComment).done(function(commentObj){
+										$("#commentInput").val(commentObj.comment);
+										$("#isExampleCheckbox").prop("checked",commentObj.is_example == 1);
+									});
+									
+									//check to see if vert info has been filled in for this plot
+									if(vertInfo.length !=0){
+										for(var i=0;i<vertInfo.length;i++){
+											selectThese.push(vertInfo[i].index); //reset global
+										}
+									} else{
+										selectThese = [0,lastIndex]
+										for(var i=0;i<selectThese.length;i++){
+											vertInfo.push({year:origData[selectThese[i]].image_year,julday:origData[selectThese[i]].image_julday,index:selectThese[i],landUse:{
+												//dominant:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}
+													primary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}},
+													secondary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}}
+												},landCover:{landCover:"",other:{trees:false,shrubs:false,grassForbHerb:false,impervious:false,naturalBarren:false,snowIce:false,water:false}},changeProcess:{changeProcess:"",notes:{natural:false,prescribed:false,sitePrepFire:false,airphotoOnly:false,clearcut:false,thinning:false,flooding:false,reserviorLakeFlux:false,wetlandDrainage:false}}})
+										}
+									}		
+									
+									//$(".segment").remove(); //reset the form
+									//$(".vertex").remove(); //reset the form
+									
+									fillInForm() //fill out the form inputs					
+									plotInt(); //draw the points
+									makeChipInfo("json", origData)
+									appendSrcImg(); //append the src imgs
+									appendChips("annual",selectThese); //append the chip div/canvas/img set
+									
+									//once the imgs have loaded make the chip info and draw the img to the canvas and display the time-lapse feature
+									$("#img-gallery").imagesLoaded(function(){
+										//makeChipInfo("json", origData); //chip info array gets set in "appendChips" gets filled out here because we have to wait until the imgs have loaded to get their height (used when chip strip is the src - not needed when chips are singles)
+										drawAllChips("annual");	//draw the imgs to the canvas	
+										//tlInt(); //draw the time-lapse img - this is for the time lapse video - not used
+/* 										if ((expandedChipWindow != null) && expandedChipWindow.closed == false){
+											var selectedColor = $("#selectedColor").prop("value");
+											var pass_data = {
+												"action":"init_chips", //hard assign
+												"selectThese":selectThese, //selectThese, //"n_chips":"40", //get this from the img metadata
+												"chipInfo":chipInfo,
+												"n_chips":n_chips,
+												"chipDisplayProps":chipDisplayProps,
+												"selectedColor":selectedColor
+											};
+											expandedChipWindow.postMessage(JSON.stringify(pass_data),"*");	
+                                        } */
+                                        toggleSpinner(false);
+									});		
+								});
+								//plotInt(); //draw the points
+							};
+						});						
+					});	
+				});				
+			}
+
+
+
+
+
+
 /**
  * cache plot data from GEE
  * 
  * TODO: which mechanism should be used, localStorage or indexedDB?
  * 
  */
-var cacheWorker = new Worker('/js/ts_webworker.js');
-function preCache() {
-  let message = {
-    tsTargetDay: sessionInfo.tsTargetDay,
-    plots: sessionInfo.plots
-  }
-  cacheWorker.postMessage(message);
-}
+// var cacheWorker = new Worker('/js/ts_webworker.js');
+// function preCache() {
+//   let message = {
+//     tsTargetDay: sessionInfo.tsTargetDay,
+//     plots: sessionInfo.plots
+//   }
+//   cacheWorker.postMessage(message);
+// }
 
 // function preCache() {
 //   sessionInfo.plots.map(p => {
@@ -606,7 +832,7 @@ function appendPlots(sessionInfo){
         //TSCEO keep a copy of the plots list
         sessionInfo.plots = object;
 
-        preCache();
+        // preCache();
 
         for(var i=0;i<object.length;i++){
             //TSCEO: temporaly force to have value for is_complete and is_example
@@ -618,31 +844,31 @@ function appendPlots(sessionInfo){
             if(object[i].is_complete == 1){
                 //$("#plotList").append('<li class="done">'+object[i].plotid+'</li>');
                 if(object[i].is_example != 1){
-                    let pLi = `<li style="display:none" data-center='${center}'>
+                    let pLi = `<li style="display:none">
                                     <small>
                                         <span class="glyphicon glyphicon-ok" style="margin-right:3px"></span>
-                                    </small>${object[i].id}</li>`;
+                                    </small>${object[i].plotId}</li>`;
                     $("#plotList").append(pLi);
                 } else{
-                    let pLi = `<li style="display:none" class="example" data-center='${center}'>
+                    let pLi = `<li style="display:none" class="example">
                     <small>
                         <span class="glyphicon glyphicon-ok" style="margin-right:3px"></span>
-                    </small>${object[i].id}</li>`;                   
+                    </small>${object[i].plotId}</li>`;                   
                     $("#plotList").append(pLi);
                 }
             } else {
                 //$("#plotList").append('<li>'+object[i].plotid+'</li>');
                 if(object[i].is_example != 1){
-                    let pLi = `<li style="display:none" data-center='${center}'>
+                    let pLi = `<li style="display:none">
                                     <small>
                                         <span class="glyphicon glyphicon-none" style="margin-right:3px"></span>
-                                    </small>${object[i].id}</li>`;
+                                    </small>${object[i].plotId}</li>`;
                     $("#plotList").append(pLi);
                 } else{
-                    let pLi = `<li style="display:none" class="example" data-center='${center}'>
+                    let pLi = `<li style="display:none" class="example">
                                     <small>
                                         <span class="glyphicon glyphicon-none" style="margin-right:3px"></span>
-                                    </small>${object[i].id}</li>`;
+                                    </small>${object[i].plotId}</li>`;
                     $("#plotList").append(pLi);
                 }
             }
@@ -984,7 +1210,7 @@ function plotInt(){
         .append("circle")
         .filter(function(d) {
             if ($('#showAnomaly').prop('checked')) {
-                return d.cfmask < 3; //3: shadow, 4: cloud
+                return d.cloud_cover == 0; //d.cfmask < 3; //3: shadow, 4: cloud
             }
             else {
                 return true;
@@ -1641,8 +1867,66 @@ $(window).on("beforeunload", function(){ //catches exist buttons
     }
 })
 
+			//function to prepare vert info to be posted to the server
+			function saveVertInfo(sessionInfo, vertInfo){
+				//first deal with the vertInfo
+				//package up the vert info
+				if(typeof vertInfo === 'undefined' | sessionInfo.projectID == "" | sessionInfo.plotID == "" ){return} 
+				
+				if (!sessionInfo.isDirty) {
+					return;
+				}
+
+				var vertInfoSave = {
+							"vertInfo": vertInfo,   //array of objects � see below for the keys
+							"projectID": sessionInfo.projectID,   //integer
+							"userID": sessionInfo.userID,   //integer
+							"plotID": sessionInfo.plotID,   //integer
+							"tsa": sessionInfo.tsa   //integer
+				}
+				
+				vertInfoSave = JSON.stringify(vertInfoSave); //make vert info object into a string
+				$.post(getUrls(sessionInfo).vertInfoSave, {"vertInfoSave":vertInfoSave})
+					.fail(function(){
+						alert("Failed to save vertInfo");
+					});
+					
+				//deal with the comment
+				var commentText = $("#commentInput").val(); //get the comment
+				//if(commentText != ""){ //check to see if there is a comment - if so then send it to the server - commented because we want to save comment eachtime because the is_complete check is included now (2/22/16)					
+				var done = checkPlot(sessionInfo, vertInfo) == true ? 1:0			
+				var example = $("#isExampleCheckbox").prop("checked") == true ? 1:0
+				//package up the comment info
+				var commentInfo = {
+						"projectID": sessionInfo.projectID,
+						"tsa": sessionInfo.tsa,
+						"plotID": sessionInfo.plotID,
+						"userID": sessionInfo.userID,
+						"comment": commentText, //,
+						"isComplete": done,
+						"isExample":example		
+				}
+				
+				//make comment object into a string
+				commentInfo = JSON.stringify(commentInfo); 
+				
+				//send the comment to the server					
+				$.post(getUrls(sessionInfo).commentSave, {"comment":commentInfo})
+					.fail(function(){
+						alert("Failed to save plot comment");
+					});
+					
+				sessionInfo.isDirty = false;
+				//} //end bracket for if(commentText != "")
+			}
+
+
+
+
+
+
 //function to prepare vert info to be posted to the server
-function saveVertInfo(sessionInfo, vertInfo){
+function saveVertInfoReact(sessionInfo, vertInfo){
     //first deal with the vertInfo
     //package up the vert info
     if(typeof vertInfo === 'undefined' | sessionInfo.projectID == "" | sessionInfo.plotID == "" ){return}
@@ -2348,8 +2632,8 @@ function fillInForm(){
 
     //fill in segment form
     for(var i=0;i<len-1;i++){
-        var yearStart = vertInfo[i].image_year;
-        var yearEnd = vertInfo[i+1].image_year;
+        var yearStart = vertInfo[i].year;
+        var yearEnd = vertInfo[i+1].year;
         $("#segmentsFormTbl").append('<tr class="segment"><td class="highlightIt"><span class="glyphicon glyphicon-search"></span></td><td>'+yearStart+'</td><td>'+yearEnd+'</td><td class="changeProcessInput formDrop"></td></tr>');
         $(".changeProcessInput").eq(i).text(vertInfo[i+1].changeProcess.changeProcess);
     }
@@ -2373,8 +2657,10 @@ function updateSegmentForm(seriesIndex, addRemove){
 
         //make a vertInfo object to splice into the vertInfo array
         var spliceVertInfo = {
-            image_year:data.Values[seriesIndex].image_year, //fill in for the selected point
-            image_julday:data.Values[seriesIndex].image_julday,
+            // image_year:data.Values[seriesIndex].image_year, //fill in for the selected point
+            // image_julday:data.Values[seriesIndex].image_julday,
+            year:data.Values[seriesIndex].image_year, //fill in for the selected point
+            julday:data.Values[seriesIndex].image_julday,
             index:seriesIndex, //fill in for the selected point
             iid: data.Values[seriesIndex].iid,
             isVertex: true,
@@ -2672,8 +2958,8 @@ function appendSrcImg(){
     for(var i=0;i<n_chips;i++){
         //chipInfo.imgIDs[i] = ("img"+i);
         //var appendThisImg = '<img class="chipImgSrc" id="'+chipInfo.imgIDs[i]+'"src="'+origData[i].url+'">';
-        //YANG var thisChipSet = $("#chipSetList .active").attr("id");
-        var thisChipSet = 'chipSetBGW';
+        var thisChipSet = $("#chipSetList .active").attr("id");
+        // var thisChipSet = 'chipSetBGW';
         var appendThisImg = '<img class="chipImgSrc" id="'+chipInfo.imgIDs[i]+'"src="'+chipInfo.src[i][thisChipSet]+'">';
         $("#img-gallery").append(appendThisImg);
     }
@@ -2684,7 +2970,7 @@ function appendChips(window, selected, color){ //this function is handling the a
         chipInfo.canvasIDs[i] = ("chip"+i);
         var appendThisCanvas = '<div id="'+chipInfo.canvasIDs[i]+'" class="chipHolder">'+
             '<canvas class="chipImg" width="'+chipDisplayProps.chipSize+'" height="'+chipDisplayProps.canvasHeight+'"></canvas>'+
-            '<div class="chipDate">&nbsp;</div>'+ //'<span class="glyphicon glyphicon-new-window expandChipYear" aria-hidden="true" style="float:right; margin-right:5px"></span>'+
+            '<div class="chipDate">&nbsp;</div>' //+ '<span class="glyphicon glyphicon-new-window expandChipYear" aria-hidden="true" style="float:right; margin-right:5px"></span>'+
             '</div>';
         $("#chip-gallery").append(appendThisCanvas);
     }
@@ -2726,10 +3012,10 @@ function makeChipInfo(selection, origData){
             var useThisChip = 0;
             var year = origData[i].image_year
             var julday = origData[i].image_julday
-            var src = {chipSetBGW: getImageChip(origData[i].iid)}
-                // chipSet743:origData[i].url_743,
-                // chipSet432:origData[i].url_432}
-            var sensor = origData[i].iid.substring(8, 12);
+            var src = {chipSetBGW: origData[i].url_tcb,
+                chipSet743:origData[i].url_743,
+                chipSet432:origData[i].url_432}
+            var sensor = origData[i].sensor; //iid.substring(8, 12);
         }
 
         chipInfo.chipsInStrip[i] = 1 //thisManyChips;
@@ -2816,12 +3102,12 @@ function drawOneChip(thisChip, window){
 
     if(window == "annual"){
         $(".chipDate").eq(thisChip).empty().append(
-                '<span class="glyphicon glyphicon-triangle-left previousChip" aria-hidden="true" style="float:left; margin-left:5px"></span>'
-                + chipInfo.year[thisChip]+"-"+chipInfo.julday[thisChip] 
+                // '<span class="glyphicon glyphicon-triangle-left previousChip" aria-hidden="true" style="float:left; margin-left:5px"></span>'
+                chipInfo.year[thisChip]+"-"+chipInfo.julday[thisChip] 
                 + " "
                 + chipInfo.sensor[thisChip]
                 + '<span class="glyphicon glyphicon-new-window expandChipYear" aria-hidden="true" style="float:right; margin-right:5px"></span>'
-                + '<span class="glyphicon glyphicon-triangle-right nextChip" aria-hidden="true" style="float:right; margin-right:5px"></span>'
+                // + '<span class="glyphicon glyphicon-triangle-right nextChip" aria-hidden="true" style="float:right; margin-right:5px"></span>'
             );
             
         if($("#toolTipsCheck").hasClass("glyphicon glyphicon-ok")){
@@ -2930,66 +3216,66 @@ function getNextImage(dataArray, target, direction) {
 }
 
 /////////////////// GET NEXT OR PREVIOUS CHIP /////////////////////
-$("body").on("click", ".previousChip, .nextChip", function(e){ //need to use body because the canvases have probably not loaded yet
-    let direction = $(this).hasClass('nextChip') ? 'next' : 'previous';
-    let thisIndex = direction === 'next' ? $(".nextChip").index(this) : $(".previousChip").index(this);
+// $("body").on("click", ".previousChip, .nextChip", function(e){ //need to use body because the canvases have probably not loaded yet
+//     let direction = $(this).hasClass('nextChip') ? 'next' : 'previous';
+//     let thisIndex = direction === 'next' ? $(".nextChip").index(this) : $(".previousChip").index(this);
 
-     //get information for current image chip
-    let target = data.Values[thisIndex];
-    //get the next available image
-    let candidate = getNextImage(allData.Values, target, direction);
+//      //get information for current image chip
+//     let target = data.Values[thisIndex];
+//     //get the next available image
+//     let candidate = getNextImage(allData.Values, target, direction);
 
-    //TODO: no candidate image, need to inform user.
-    if (candidate === null) return;
+//     //TODO: no candidate image, need to inform user.
+//     if (candidate === null) return;
 
-    sessionInfo.isDirty = true;
+//     sessionInfo.isDirty = true;
 
-    //now replace the image chip
-    let	message = {
-        "action":"replace_chip",
-        "newSyOffset":0, //tell the origin where to set the original offset for the chip
-        "originChipIndex":thisIndex, //tell the origin which chip to set the original offset for (index)
-        "useThisChip":0, //canvasIDindex,//tell the origin what chip to use instead
-        "src":{
-            // chipSet432:origData[canvasIDindex].url_432,
-            // chipSet743:origData[canvasIDindex].url_743,
-            chipSetBGW: getImageChip(candidate.iid)
-        },
-        "data": candidate
-    };
+//     //now replace the image chip
+//     let	message = {
+//         "action":"replace_chip",
+//         "newSyOffset":0, //tell the origin where to set the original offset for the chip
+//         "originChipIndex":thisIndex, //tell the origin which chip to set the original offset for (index)
+//         "useThisChip":0, //canvasIDindex,//tell the origin what chip to use instead
+//         "src":{
+//             // chipSet432:origData[canvasIDindex].url_432,
+//             // chipSet743:origData[canvasIDindex].url_743,
+//             chipSetBGW: getImageChip(candidate.iid)
+//         },
+//         "data": candidate
+//     };
 
-    //capture info to send to the server
-    var oldDOY = target.image_julday;
-    var newDOY = candidate.image_julday
+//     //capture info to send to the server
+//     var oldDOY = target.image_julday;
+//     var newDOY = candidate.image_julday
 
-    //fill in the data for the new image selection
-    data.Values[thisIndex] = candidate;
-    origData[thisIndex] = _.pick(candidate, ['B1', 'B2', 'B3', 'B4', 'B5', 'B7', 'cfmask', 'iid', 'image_julday', 'image_year']);
-    chipInfo.src[thisIndex]= {...message.src};
-    chipInfo.julday[thisIndex]=candidate.image_julday;
+//     //fill in the data for the new image selection
+//     data.Values[thisIndex] = candidate;
+//     origData[thisIndex] = _.pick(candidate, ['B1', 'B2', 'B3', 'B4', 'B5', 'B7', 'cfmask', 'iid', 'image_julday', 'image_year']);
+//     chipInfo.src[thisIndex]= {...message.src};
+//     chipInfo.julday[thisIndex]=candidate.image_julday;
 
-    //FIXME: (YANG) this implementation is awkard! Should be replaced.
-    //replace the chip
-    replaceChip(message); //replace a chip with one selected in the remote window
+//     //FIXME: (YANG) this implementation is awkard! Should be replaced.
+//     //replace the chip
+//     replaceChip(message); //replace a chip with one selected in the remote window
 
-    //prepare the color for the new selection
-    rgbColor = scaledRGB(data, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, n_chips);
+//     //prepare the color for the new selection
+//     rgbColor = scaledRGB(data, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, n_chips);
 
-    //change the spectral plot
-    changePlotPoint();
+//     //change the spectral plot
+//     changePlotPoint();
 
-    //Is the replaced chip a vertex?
-    vertexFound = _.find(vertInfo, ['image_year', target.image_year]);
-    if (vertexFound !== undefined) {
-      vertexFound.image_julday = candidate.image_julday;
-    }
+//     //Is the replaced chip a vertex?
+//     vertexFound = _.find(vertInfo, ['image_year', target.image_year]);
+//     if (vertexFound !== undefined) {
+//       vertexFound.image_julday = candidate.image_julday;
+//     }
 
-    //save the new image selection to the server so it will be the default in the future
-    //TODO: NEXT HERE!!!!
-    //FIXME: remove the changeDefaultChip logic with GEE implementation.
-    // changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].image_year, newDOY=newDOY, oldDOY=oldDOY) //changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].Year, newDOY=remoteMessage.julday, oldDOY=data.Values[remoteMessage.originChipIndex].doy)
+//     //save the new image selection to the server so it will be the default in the future
+//     //TODO: NEXT HERE!!!!
+//     //FIXME: remove the changeDefaultChip logic with GEE implementation.
+//     // changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].image_year, newDOY=newDOY, oldDOY=oldDOY) //changeDefaultChip(sessionInfo, year=data.Values[remoteMessage.originChipIndex].Year, newDOY=remoteMessage.julday, oldDOY=data.Values[remoteMessage.originChipIndex].doy)
 
-});
+// });
 
 ///////////////////OPEN THE REMOTE CHIP STRIP WINDOW AND SEND MESSAGES/////////////////////
 //var originURL = null;
@@ -3024,10 +3310,11 @@ $("body").on("click", ".expandChipYear, .data", function(e){ //need to use body 
         "tsa":sessionInfo.tsa,
         "selectedColor":selectedColor,
         "yearList":yearList,
-        "thisChipSet":'chipSetBGW' //YANG $("#chipSetList .active").attr("id") //this is found one other time - could make it global
+        "thisChipSet": $("#chipSetList .active").attr("id") //this is found one other time - could make it global
     };
     if ((chipstripwindow == null) || (chipstripwindow.closed)){      //if the window is not loaded then load it and send the message after it is fully loaded
-        chipstripwindow = window.open("./chip_qa.php?t=" + authHeader + "&a="+Math.floor(Math.random()*800000),"_blank","width=1080px, height=840px", "toolbar=0","titlebar=0","menubar=0","scrollbars=yes"); //open the remote chip strip window
+        // chipstripwindow = window.open("./chip_qa.php?t=" + authHeader + "&a="+Math.floor(Math.random()*800000),"_blank","width=1080px, height=840px", "toolbar=0","titlebar=0","menubar=0","scrollbars=yes"); //open the remote chip strip window
+        chipstripwindow = window.open("/timesync/chip-qa/" + sessionInfo.userID + "?t=" + authHeader + "&a="+Math.floor(Math.random()*800000),"_blank","width=1080px, height=840px", "toolbar=0","titlebar=0","menubar=0","scrollbars=yes"); //open the remote chip strip window
 
         var pscall = setTimeout(function(){
             // console.log('sending message');

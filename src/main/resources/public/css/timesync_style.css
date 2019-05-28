@@ -235,7 +235,7 @@ svg{
 }
 
 .previousChip, .nextChip, .expandChipYear{
-    visibility: hidden;
+    /* visibility: hidden; */
     cursor: pointer;
 }
 
@@ -243,9 +243,9 @@ svg{
 .chipHolder:hover .nextChip {
     visibility: visible;
 }
-.chipHolder:hover .expandChipYear {
+/* .chipHolder:hover .expandChipYear {
     visibility: hidden;
-}
+} */
 
 /*#################################################################################################*/
 
@@ -718,6 +718,11 @@ table td, table th{
 }
 
 /*#########################################################################################*/
+
+#saveBtn {
+    width: 100%;
+    text-align: center;
+}
 
 .loader,
 .loader:after {

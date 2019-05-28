@@ -22,6 +22,7 @@ import org.openforis.ceo.db_api.Projects;
 import org.openforis.ceo.db_api.TimeSync;
 import org.openforis.ceo.db_api.Users;
 import org.openforis.ceo.env.CeoConfig;
+import org.openforis.ceo.env.CorsFilter;
 import org.openforis.ceo.local.JsonGeoDash;
 import org.openforis.ceo.local.JsonImagery;
 import org.openforis.ceo.local.JsonInstitutions;
@@ -67,11 +68,11 @@ public class Server implements SparkApplication {
         // FIXME: Get deploy/clientkeystore signed by a certificate authority.
         // https://docs.oracle.com/cd/E19509-01/820-3503/ggfen/index.html
         // https://spark.apache.org/docs/latest/security.html
-        secure("deploy/tsceo.jks", "timesync", null, null);
+        // secure("deploy/tsceo.jks", "timesync", null, null);
 
         // Serve static files from src/main/resources/public/
         staticFileLocation("/public");
-
+        CorsFilter.apply();
         // Allow token-based authentication if users are not logged in and we are using the COLLECT database
         if (databaseType.equals("COLLECT")) {
             before("/*", new CeoAuthFilter());
@@ -95,7 +96,7 @@ public class Server implements SparkApplication {
         get("/password-reset",                        Views.passwordReset(freemarker));
         get("/card-test",                             Views.cardTest(freemarker));
         get("/timesync/:id",                          Views.timeSync(freemarker));
-        // get("/timesync-dash",                         Views.timeSyncDash(freemarker));
+        get("/timesync/chip-qa/:id",                      Views.chipQa(freemarker));
 
         // Routing Table: HTML pages (with side effects)
         post("/account/:id",                          (req, res) -> Views.account(freemarker).handle(users.updateAccount(req, res), res));

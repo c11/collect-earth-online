@@ -32,11 +32,11 @@
             <#if userid != "">
                 <#if navlink == "TimeSync">
                     <li class="nav-item active">
-                        <a class="nav-link" href="${root}/timesync/${userid}">TimeSync</a>
+                        <a class="nav-link" href="${root}/timesync/${userid}" target='_'>TimeSync</a>
                     </li>
                 <#else>
                     <li class="nav-item">
-                        <a class="nav-link" href="${root}/timesync/${userid}">TimeSync</a>
+                        <a class="nav-link" href="${root}/timesync/${userid}" target='_'>TimeSync</a>
                     </li>
                 </#if>
             </#if>
