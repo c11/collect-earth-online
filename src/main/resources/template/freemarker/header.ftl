@@ -25,7 +25,6 @@
         <link rel="stylesheet" type="text/css" href="${root}/css/datepicker.css">
         <script type="text/javascript" src="${root}/js/jquery-3.1.1.min.js"></script>
         <script type="text/javascript" src="${root}/js/jquery-ui.min.js"></script>
-        <script type="text/javascript" src="${root}/js/jquery.flip.min.js"></script>
 
         <!-- Bootstrap -->
         <link rel="stylesheet" type="text/css" href="${root}/css/bootstrap.min.css">
@@ -40,12 +39,11 @@
         <!-- Angular -->
         <script type="text/javascript" src="${root}/js/angular.min.js"></script>
 
-        <!-- OpenLayers3 -->
-        <link rel="stylesheet" type="text/css" href="${root}/css/openlayers-3.13.0.css">
+        <!-- OpenLayers3.20.1 -->
+        <link rel="stylesheet" type="text/css" href="${root}/css/openlayers-3.20.1.css">
         <link rel="stylesheet" type="text/css" href="${root}/css/ol3-popup.css" />
-        <script type="text/javascript" src="${root}/js/openlayers-3.13.0.js"></script>
+        <script type="text/javascript" src="${root}/js/openlayers-3.20.1.js"></script>
         <script type="text/javascript" src="${root}/js/ol3-popup.js"></script>
-
         <!-- Fonts -->
         <!-- <link rel="stylesheet" type="text/css" href="${root}/css/google-fonts-open-sans.css"> -->
         <!-- <link rel="stylesheet" type="text/css" href="${root}/css/google-fonts-oswald.css"> -->
@@ -87,5 +85,6 @@
             <script type="text/javascript" src="/collect/earthFiles/openforis/of-ui-forms-validation.js"></script>
             <script type="text/javascript" src="/collect/earthFiles/js/of_collect_forms.js"></script>
         </#if>
+        <#include "googleanalytics.ftl" ignore_missing=true>
     </head>
     <body style="padding-top:60px;">

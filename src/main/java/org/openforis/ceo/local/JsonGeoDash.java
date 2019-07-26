@@ -4,14 +4,29 @@ import static org.openforis.ceo.utils.JsonUtils.filterJsonArray;
 import static org.openforis.ceo.utils.JsonUtils.findInJsonArray;
 import static org.openforis.ceo.utils.JsonUtils.mapJsonArray;
 import static org.openforis.ceo.utils.JsonUtils.parseJson;
+import static org.openforis.ceo.utils.JsonUtils.elementToArray;
+import static org.openforis.ceo.utils.JsonUtils.elementToObject;
 import static org.openforis.ceo.utils.JsonUtils.readJsonFile;
 import static org.openforis.ceo.utils.JsonUtils.writeJsonFile;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.net.URLDecoder;
+import java.security.cert.X509Certificate;
+import java.security.SecureRandom;
 import java.util.UUID;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.HttpsURLConnection;
+import org.apache.http.util.EntityUtils;
 import org.openforis.ceo.db_api.GeoDash;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import spark.Request;
 import spark.Response;
 
@@ -20,9 +35,8 @@ public class JsonGeoDash implements GeoDash {
     public synchronized String geodashId(Request req, Response res) {
         var projectId = req.params(":id");
         var projectTitle = req.queryParams("title");
-        var callback = req.queryParams("callback");
 
-        var projects = readJsonFile("proj.json").getAsJsonArray();
+        var projects = elementToArray(readJsonFile("proj.json"));
         var matchingProject = findInJsonArray(projects,
             project -> project.get("projectID").getAsString().equals(projectId));
         if (matchingProject.isPresent()) {
@@ -30,11 +44,7 @@ public class JsonGeoDash implements GeoDash {
             var dashboardId = project.get("dashboard").getAsString();
             try {
                 var dashboardJson = readJsonFile("dash-" + dashboardId + ".json").toString();
-                if (callback != null) {
-                    return callback + "(" + dashboardJson + ")";
-                } else {
-                    return dashboardJson;
-                }
+                return dashboardJson;
             } catch (Exception e) {
                 // The dash-<dashboardId>.json file doesn't exist, so we need to create a blank one.
                 var newDashboard = new JsonObject();
@@ -44,12 +54,7 @@ public class JsonGeoDash implements GeoDash {
                 newDashboard.addProperty("dashboardID", dashboardId);
 
                 writeJsonFile("dash-" + dashboardId + ".json", newDashboard);
-
-                if (callback != null) {
-                    return callback + "(" + newDashboard.toString() + ")";
-                } else {
-                    return newDashboard.toString();
-                }
+                return newDashboard.toString();
             }
         } else {
             var newDashboardId = UUID.randomUUID().toString();
@@ -69,11 +74,7 @@ public class JsonGeoDash implements GeoDash {
 
             writeJsonFile("dash-" + newDashboardId + ".json", newDashboard);
 
-            if (callback != null) {
-                return callback + "(" + newDashboard.toString() + ")";
-            } else {
-                return newDashboard.toString();
-            }
+            return newDashboard.toString();
         }
     }
 
@@ -81,17 +82,17 @@ public class JsonGeoDash implements GeoDash {
         /* Code will go here to update dashboard*/
         return "";
     }
-
+    
     public synchronized String createDashBoardWidgetById(Request req, Response res) {
-        var dashboardId = req.queryParams("dashID");
-        var widgetJson = req.queryParams("widgetJSON");
-        var callback = req.queryParams("callback");
+        var jsonInputs = parseJson(req.body()).getAsJsonObject();
+        var dashboardId = jsonInputs.get("dashID").getAsString();
+        var widgetJson = jsonInputs.get("widgetJSON").getAsString();
 
-        var dashboard = readJsonFile("dash-" + dashboardId + ".json").getAsJsonObject();
+        var dashboard = elementToObject(readJsonFile("dash-" + dashboardId + ".json"));
         var widgets = dashboard.getAsJsonArray("widgets");
 
         try {
-            var newWidget = parseJson(URLDecoder.decode(widgetJson, "UTF-8")).getAsJsonObject();
+            var newWidget = elementToObject(parseJson(URLDecoder.decode(widgetJson, "UTF-8")));
             widgets.add(newWidget);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -100,20 +101,16 @@ public class JsonGeoDash implements GeoDash {
         dashboard.add("widgets", widgets);
         writeJsonFile("dash-" + dashboardId + ".json", dashboard);
 
-        if (callback != null) {
-            return callback + "()";
-        } else {
-            return "";
-        }
+        return "";
     }
 
+    // FIXME: the new react design is using the body to pass the widget JSON (see PostgresGeoDash for updated form)
     public synchronized String updateDashBoardWidgetById(Request req, Response res) {
-        var dashboardId = req.queryParams("dashID");
         var widgetId = req.params(":id");
-        var widgetJson = req.queryParams("widgetJSON");
-        var callback = req.queryParams("callback");
-
-        var dashboard = readJsonFile("dash-" + dashboardId + ".json").getAsJsonObject();
+        var jsonInputs = elementToObject(parseJson(req.body()));
+        var dashboardId = jsonInputs.get("dashID").getAsString();
+        var widgetJson = jsonInputs.get("widgetJSON").getAsString();
+        var dashboard = elementToObject(readJsonFile("dash-" + dashboardId + ".json"));
         var widgets = dashboard.getAsJsonArray("widgets");
 
         var updatedWidgets = mapJsonArray(widgets, widget -> {
@@ -131,19 +128,14 @@ public class JsonGeoDash implements GeoDash {
         dashboard.add("widgets", updatedWidgets);
         writeJsonFile("dash-" + dashboardId + ".json", dashboard);
 
-        if (callback != null) {
-            return callback + "()";
-        } else {
-            return "";
-        }
+        return "";
     }
 
     public synchronized String deleteDashBoardWidgetById(Request req, Response res) {
-        var dashboardId = req.queryParams("dashID");
         var widgetId = req.params(":id");
-        var callback = req.queryParams("callback");
-
-        var dashboard = readJsonFile("dash-" + dashboardId + ".json").getAsJsonObject();
+        var jsonInputs = elementToObject(parseJson(req.body()));
+        var dashboardId = jsonInputs.get("dashID").getAsString();
+        var dashboard = elementToObject(readJsonFile("dash-" + dashboardId + ".json"));
         var widgets = dashboard.getAsJsonArray("widgets");
 
         var updatedWidgets = filterJsonArray(widgets, widget -> !widget.get("id").getAsString().equals(widgetId));
@@ -151,11 +143,55 @@ public class JsonGeoDash implements GeoDash {
         dashboard.add("widgets", updatedWidgets);
         writeJsonFile("dash-" + dashboardId + ".json", dashboard);
 
-        if (callback != null) {
-            return callback + "()";
-        } else {
+        return "";
+    }
+
+    public String gatewayRequest(Request req, Response res) {
+        try {
+            var trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[0];
+                        }
+
+                        public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                        }
+
+                        public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                        }
+                    }
+            };
+
+            var jsonInputs = parseJson(req.body()).getAsJsonObject();
+            var path = jsonInputs.get("path").getAsString();
+
+            var builder = new SSLContextBuilder();
+            builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+            var sslsf = new SSLConnectionSocketFactory(builder.build());
+            var httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
+            
+            var endurl = req.host();
+            if (endurl.lastIndexOf(":") > 0) {
+                endurl = endurl.substring(0, endurl.lastIndexOf(":"));
+            }
+            var reqUrl = req.scheme() + "://" + endurl;
+            /* this sends localhost calls to the dev server */
+            reqUrl = reqUrl.replace("localhost", "ceodev.servirglobal.net");
+            var request = new HttpPost(reqUrl + ":8888/" + path);
+
+            var params = new StringEntity(jsonInputs.toString());
+            params.setContentType("application/json");
+            request.setEntity(params);
+
+            var sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+            var response = httpclient.execute(request);
+            return EntityUtils.toString(response.getEntity(), "UTF-8");
+        } catch (Exception e) {
+            e.printStackTrace();
             return "";
         }
     }
-
 }

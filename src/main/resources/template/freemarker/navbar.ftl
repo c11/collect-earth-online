@@ -20,11 +20,11 @@
             </#list>
             <#if userid != "">
                 <#if navlink == "Account">
-                    <li class="nav-item active">
+                        <li class="nav-item active">
                         <a class="nav-link" href="${root}/account/${userid}">Account</a>
-                    </li>
-                <#else>
-                    <li class="nav-item">
+                        </li>
+                    <#else>
+                        <li class="nav-item">
                         <a class="nav-link" href="${root}/account/${userid}">Account</a>
                     </li>
                 </#if>
@@ -37,8 +37,8 @@
                 <#else>
                     <li class="nav-item">
                         <a class="nav-link" href="${root}/timesync/${userid}">TimeSync</a>
-                    </li>
-                </#if>
+                        </li>
+                    </#if>
             </#if>
         </ul>
         <ul id="login-info" class="navbar-nav mr-0">

@@ -1,8 +1,8 @@
 var CACHE = 'gee-cache';
 
 self.addEventListener('install', function (evt) {
-  console.log('The service worker is being installed.');
-  evt.waitUntil(precache());
+    console.log('The service worker is being installed.');
+    evt.waitUntil(precache());
 });
 
 //Network first then cache
@@ -49,14 +49,14 @@ self.addEventListener('fetch', function (event) {
 
 
 function precache() {
-  return caches.open(CACHE).then(function (cache) {
-    return cache.addAll([
-      // 'https://localhost:8888/ts/spectrals/-122.47674862385583/43.76407549182641',
-      // 'https://localhost:8888/ts/images/-122.47674862385583/43.76407549182641/2000',
-      // 'https://localhost:8888/ts/chip/-122.47674862385583/43.76407549182641/2000/215/tc',
-      // 'https://localhost:8888/ts/image_chip/-122.47674862385583/43.76407549182641/LANDSAT/LE07/C01/T1_SR/LE07_046029_20000605/tc/255'
-    ]);
-  });
+    return caches.open(CACHE).then(function (cache) {
+        return cache.addAll([
+            // 'https://localhost:8888/ts/spectrals/-122.47674862385583/43.76407549182641',
+            // 'https://localhost:8888/ts/images/-122.47674862385583/43.76407549182641/2000',
+            // 'https://localhost:8888/ts/chip/-122.47674862385583/43.76407549182641/2000/215/tc',
+            // 'https://localhost:8888/ts/image_chip/-122.47674862385583/43.76407549182641/LANDSAT/LE07/C01/T1_SR/LE07_046029_20000605/tc/255'
+        ]);
+    });
 }
 
 // function fromNetworkThenCache(request, timeout) {

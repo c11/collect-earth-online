@@ -1,5 +1,7 @@
 package org.openforis.ceo.local;
 
+import static org.openforis.ceo.utils.JsonUtils.elementToArray;
+import static org.openforis.ceo.utils.JsonUtils.expandResourcePath;
 import static org.openforis.ceo.utils.JsonUtils.findInJsonArray;
 import static org.openforis.ceo.utils.JsonUtils.getNextId;
 import static org.openforis.ceo.utils.JsonUtils.intoJsonArray;
@@ -10,10 +12,16 @@ import static org.openforis.ceo.utils.JsonUtils.toStream;
 import static org.openforis.ceo.utils.JsonUtils.writeJsonFile;
 import static org.openforis.ceo.utils.Mail.isEmail;
 import static org.openforis.ceo.utils.Mail.sendMail;
+import static org.openforis.ceo.utils.ProjectUtils.getOrZero;
+import static org.openforis.ceo.utils.ProjectUtils.getOrEmptyString;
+import static org.openforis.ceo.utils.ProjectUtils.collectTimeIgnoreString;
+
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -39,7 +47,7 @@ public class JsonUsers implements Users {
             : inputReturnURL;
 
         // Check if email exists
-        var users = readJsonFile("user-list.json").getAsJsonArray();
+        var users = elementToArray(readJsonFile("user-list.json"));
         var matchingUser = findInJsonArray(users, user -> user.get("email").getAsString().equals(inputEmail));
         if (!matchingUser.isPresent()) {
             req.session().attribute("flash_message", "No account with email " + inputEmail + " exists.");
@@ -81,7 +89,7 @@ public class JsonUsers implements Users {
             req.session().attribute("flash_message", "Password and Password confirmation do not match.");
             return req;
         } else {
-            var users = readJsonFile("user-list.json").getAsJsonArray();
+            var users = elementToArray(readJsonFile("user-list.json"));
             var matchingUser = findInJsonArray(users, user -> user.get("email").getAsString().equals(inputEmail));
             if (matchingUser.isPresent()) {
                 req.session().attribute("flash_message", "Account " + inputEmail + " already exists.");
@@ -117,10 +125,13 @@ public class JsonUsers implements Users {
         req.session().removeAttribute("userid");
         req.session().removeAttribute("username");
         req.session().removeAttribute("role");
+        
+        res.redirect(CeoConfig.documentRoot + "/home");
         return req;
     }
 
-    public synchronized Request updateAccount(Request req, Response res) {
+    // FIXME back port postgres checks that allow user to change only one part
+    public Request updateAccount(Request req, Response res) {
         var userId = (String) req.session().attribute("userid");
         var inputEmail = req.queryParams("email");
         var inputPassword = req.queryParams("password");
@@ -138,7 +149,7 @@ public class JsonUsers implements Users {
             req.session().attribute("flash_message", "Password and Password confirmation do not match.");
             return req;
         } else {
-            var users = readJsonFile("user-list.json").getAsJsonArray();
+            var users = elementToArray(readJsonFile("user-list.json"));
             var matchingUser = findInJsonArray(users, user -> user.get("id").getAsString().equals(userId));
             if (!matchingUser.isPresent()) {
                 req.session().attribute("flash_message", "The requested user account does not exist.");
@@ -167,9 +178,9 @@ public class JsonUsers implements Users {
         }
     }
 
-    public synchronized Request getPasswordResetKey(Request req, Response res) {
+    public Request getPasswordResetKey(Request req, Response res) {
         var inputEmail = req.queryParams("email");
-        var users = readJsonFile("user-list.json").getAsJsonArray();
+        var users = elementToArray(readJsonFile("user-list.json"));
         var matchingUser = findInJsonArray(users, user -> user.get("email").getAsString().equals(inputEmail));
         if (!matchingUser.isPresent()) {
             req.session().attribute("flash_message", "There is no user with that email address.");
@@ -204,7 +215,7 @@ public class JsonUsers implements Users {
         }
     }
 
-    public synchronized Request resetPassword(Request req, Response res) {
+    public Request resetPassword(Request req, Response res) {
         var inputEmail = req.queryParams("email");
         var inputResetKey = req.queryParams("password-reset-key");
         var inputPassword = req.queryParams("password");
@@ -218,7 +229,7 @@ public class JsonUsers implements Users {
             req.session().attribute("flash_message", "Password and Password confirmation do not match.");
             return req;
         } else {
-            var users = readJsonFile("user-list.json").getAsJsonArray();
+            var users = elementToArray(readJsonFile("user-list.json"));
             var matchingUser = findInJsonArray(users, user -> user.get("email").getAsString().equals(inputEmail));
             if (!matchingUser.isPresent()) {
                 req.session().attribute("flash_message", "There is no user with that email address.");
@@ -247,52 +258,188 @@ public class JsonUsers implements Users {
     }
 
     public String getAllUsers(Request req, Response res) {
-        var institutionId = req.queryParams("institutionId");
-        var users = readJsonFile("user-list.json").getAsJsonArray();
+        var users = elementToArray(readJsonFile("user-list.json"));
+        return toStream(users)
+            .filter(user -> !user.get("email").getAsString().equals("admin@openforis.org"))
+            .map(user -> {
+                    user.remove("password");
+                    user.remove("resetKey");
+                    return user;
+                })
+            .collect(intoJsonArray)
+            .toString();
+    }
 
-        if (institutionId == null || institutionId.isEmpty()) {
+    public String getInstitutionUsers(Request req, Response res) {
+        var institutionId = req.params(":id");
+
+        var users = elementToArray(readJsonFile("user-list.json"));
+        var institutions = elementToArray(readJsonFile("institution-list.json"));
+
+        var matchingInstitution = findInJsonArray(institutions,
+            institution -> institution.get("id").getAsString().equals(institutionId));
+        if (matchingInstitution.isPresent()) {
+            var institution = matchingInstitution.get();
+            var members = institution.getAsJsonArray("members");
+            var admins = institution.getAsJsonArray("admins");
+            var pending = institution.getAsJsonArray("pending");
             return toStream(users)
                 .filter(user -> !user.get("email").getAsString().equals("admin@openforis.org"))
+                .filter(user -> members.contains(user.get("id")) || pending.contains(user.get("id")))
                 .map(user -> {
                         user.remove("password");
+                        user.remove("resetKey");
+                        return user;
+                    })
+                .map(user -> {
+                        user.addProperty("institutionRole",
+                                            admins.contains(user.get("id")) ? "admin"
+                                            : members.contains(user.get("id")) ? "member"
+                                            : pending.contains(user.get("id")) ? "pending"
+                                            : "not-member");
                         return user;
                     })
                 .collect(intoJsonArray)
                 .toString();
         } else {
-            var institutions = readJsonFile("institution-list.json").getAsJsonArray();
-            var matchingInstitution = findInJsonArray(institutions,
-                institution -> institution.get("id").getAsString().equals(institutionId));
-            if (matchingInstitution.isPresent()) {
-                var institution = matchingInstitution.get();
-                var members = institution.getAsJsonArray("members");
-                var admins = institution.getAsJsonArray("admins");
-                var pending = institution.getAsJsonArray("pending");
-                return toStream(users)
-                    .filter(user -> !user.get("email").getAsString().equals("admin@openforis.org"))
-                    .filter(user -> members.contains(user.get("id")) || pending.contains(user.get("id")))
-                    .map(user -> {
-                            user.remove("password");
-                            return user;
-                        })
-                    .map(user -> {
-                            user.addProperty("institutionRole",
-                                             admins.contains(user.get("id")) ? "admin"
-                                             : members.contains(user.get("id")) ? "member"
-                                             : pending.contains(user.get("id")) ? "pending"
-                                             : "not-member");
-                            return user;
-                        })
-                    .collect(intoJsonArray)
-                    .toString();
-            } else {
-                return (new JsonArray()).toString();
-            }
+            return (new JsonArray()).toString();
         }
     }
 
+    public String getUserStats(Request req, Response res) {
+        final var userName =        req.params(":userid");
+        final var projects =        elementToArray(readJsonFile("project-list.json"));
+               
+        // Pull out usefull data
+        final var projectData = toStream(projects)
+            .filter(project -> Paths.get(expandResourcePath("/json"), "plot-data-" + project.get("id").getAsString() + ".json").toFile().exists() 
+                                && project.has("userStats") 
+                                && toStream(project.get("userStats").getAsJsonArray())
+                                .filter(user -> user.get("user").getAsString().equals(userName))
+                                .collect(intoJsonArray)
+                                .size() > 0
+                    )
+            .map(project -> {
+                var projectObject = new JsonObject(); 
+                projectObject.addProperty("id", project.get("id").getAsInt());
+                projectObject.addProperty("name", project.get("name").getAsString());
+                projectObject.addProperty("description", project.get("name").getAsString());
+                projectObject.addProperty("availability", project.get("availability").getAsString());
+                projectObject.addProperty("numPlots", project.get("numPlots").getAsString());
+                
+                var userData = toStream(project.get("userStats").getAsJsonArray())
+                                .filter(user -> user.get("user").getAsString().equals(userName))
+                                .findFirst().get();
+
+                projectObject.addProperty("plotCount", userData.get("plots").getAsInt());    
+                
+                final var getMiliSec = userData.get("milliSecs").getAsInt();
+                final var curMiliSec = getMiliSec > 0 && getMiliSec < 10000000
+                                       ? getMiliSec
+                                       : 0;
+                final var timedPlots = userData.get("timedPlots").getAsInt();
+                projectObject.addProperty("analysisAverage", timedPlots > 0 
+                            ? Math.round(curMiliSec / 1.0 / timedPlots / 100.0) / 10.0
+                            : 0);
+
+                projectObject.addProperty("totalMilliSecond", timedPlots > 0 ? curMiliSec : 0);   
+                projectObject.addProperty("timedUserPlots", timedPlots);   
+
+
+                return projectObject;
+                }
+            )
+            .sorted((p1, p2)-> p2.get("id").getAsInt() - p1.get("id").getAsInt())
+            .collect(intoJsonArray);
+
+        final int totalPlots = toStream(projectData)
+            .map(project -> getOrZero(project, "plotCount").getAsInt())
+            .mapToInt(Integer::intValue).sum();
+
+        final int totalTimedPlots = toStream(projectData)
+            .map(project -> getOrZero(project, "timedUserPlots").getAsInt())
+            .mapToInt(Integer::intValue).sum();
+
+        final int totalMilliseconds = toStream(projectData)
+            .map(project -> getOrZero(project, "totalMilliSecond").getAsInt())
+            .mapToInt(Integer::intValue).sum();
+                
+        var userStats = new JsonObject();
+        userStats.addProperty("totalProjects", projectData.size());
+        userStats.addProperty("totalPlots", totalPlots);
+        userStats.addProperty("averageTime", Math.round(totalMilliseconds / 100.0 / totalTimedPlots) / 10.0);
+        userStats.add("perProject", projectData);
+        return userStats.toString();
+    
+    }
+
+    public static JsonArray sumUserInfo(JsonArray sumArr, JsonObject newData) {
+        if (toStream(sumArr)
+                .filter(user -> user.get("user").getAsString().equals(newData.get("user").getAsString()))
+                .collect(intoJsonArray)
+                .size() > 0) 
+        {
+            return toStream(sumArr)
+                .map(user -> {
+                    if (user.get("user").getAsString().equals(newData.get("user").getAsString())) {
+                        user.addProperty("milliSecs", user.get("milliSecs").getAsInt() + newData.get("milliSecs").getAsInt());
+                        user.addProperty("plots", user.get("plots").getAsInt() + newData.get("plots").getAsInt());
+                        user.addProperty("timedPlots", user.get("timedPlots").getAsInt() + newData.get("timedPlots").getAsInt());
+                        return user;
+                    } else {
+                        return user;
+                    }
+                }).collect(intoJsonArray);
+        } else {
+            sumArr.add(newData);
+            return sumArr;
+        }
+    }
+
+    public String updateProjectUserStats(Request req, Response res) {
+
+        mapJsonFile("project-list.json",
+                project -> {
+                    if (Paths.get(expandResourcePath("/json"), "plot-data-" + project.get("id").getAsString() + ".json").toFile().exists()) {
+                        var plots = elementToArray(readJsonFile("plot-data-" + project.get("id").getAsString() + ".json"));
+                        var dataByUsers = toStream(plots)
+                            .filter(plot -> getOrEmptyString(plot, "user").getAsString().length() > 0)
+                            .map(plot -> {
+                                var plotObject = new JsonObject();
+
+                                plotObject.addProperty("milliSecs", collectTimeIgnoreString(plot) > getOrZero(plot, "collectionStart").getAsLong()
+                                                                    ? collectTimeIgnoreString(plot) - getOrZero(plot, "collectionStart").getAsLong() 
+                                                                    : 0);
+                                plotObject.addProperty("plots", 1);
+                                plotObject.addProperty("timedPlots", getOrZero(plot, "collectionStart").getAsLong() > 0 ? 1 : 0);
+                                
+                                plotObject.addProperty("user", plot.get("user").getAsString());
+                                return plotObject;
+                                }
+                            )
+                            .collect(JsonArray::new,
+                                (responce, element) -> sumUserInfo(responce, element),
+                                (a, b) -> System.out.println(a)
+                            
+                            );
+
+                        project.add("userStats", dataByUsers);                    
+                        project.remove("userMilliSeconds");
+                        project.remove("userPlots");
+                        project.remove("timedUserPlots");
+
+                        return project;
+                    } else {
+                        return project;
+                    }
+                }
+            );
+
+            return "";
+    }
+    
     public Map<Integer, String> getInstitutionRoles(int userId) {
-        var institutions = readJsonFile("institution-list.json").getAsJsonArray();
+        var institutions = elementToArray(readJsonFile("institution-list.json"));
         var userIdJson = new JsonPrimitive(userId);
         return toStream(institutions)
             .collect(Collectors.toMap(institution -> institution.get("id").getAsInt(),
@@ -310,15 +457,15 @@ public class JsonUsers implements Users {
                                       (a, b) -> b));
     }
 
-    public synchronized String updateInstitutionRole(Request req, Response res) {
+    public String updateInstitutionRole(Request req, Response res) {
         var jsonInputs = parseJson(req.body()).getAsJsonObject();
         var userId = jsonInputs.get("userId");
-        var institutionId = jsonInputs.get("institutionId").getAsString();
+        var institutionId = jsonInputs.get("institutionId").getAsInt();
         var role = jsonInputs.get("role").getAsString();
 
         mapJsonFile("institution-list.json",
                     institution -> {
-                        if (institution.get("id").getAsString().equals(institutionId)) {
+                        if (institution.get("id").getAsInt() == institutionId) {
                             var members = institution.getAsJsonArray("members");
                             var admins = institution.getAsJsonArray("admins");
                             var pending = institution.getAsJsonArray("pending");
@@ -359,14 +506,14 @@ public class JsonUsers implements Users {
         return "";
     }
 
-    public synchronized String requestInstitutionMembership(Request req, Response res) {
+    public String requestInstitutionMembership(Request req, Response res) {
         var jsonInputs = parseJson(req.body()).getAsJsonObject();
         var userId = jsonInputs.get("userId");
-        var institutionId = jsonInputs.get("institutionId").getAsString();
+        var institutionId = jsonInputs.get("institutionId").getAsInt();
 
         mapJsonFile("institution-list.json",
                     institution -> {
-                        if (institution.get("id").getAsString().equals(institutionId)) {
+                        if (institution.get("id").getAsInt() == institutionId) {
                             var members = institution.getAsJsonArray("members");
                             var pending = institution.getAsJsonArray("pending");
                             if (!members.contains(userId) && !pending.contains(userId)) {
@@ -378,7 +525,6 @@ public class JsonUsers implements Users {
                             return institution;
                         }
                     });
-
         return "";
     }
 

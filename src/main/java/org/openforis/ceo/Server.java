@@ -1,9 +1,12 @@
 package org.openforis.ceo;
 
 import static org.openforis.ceo.utils.JsonUtils.readJsonFile;
+import static spark.Service.ignite;
+import static spark.Spark.after;
 import static spark.Spark.before;
 import static spark.Spark.exception;
 import static spark.Spark.get;
+import static spark.Spark.notFound;
 import static spark.Spark.port;
 import static spark.Spark.post;
 import static spark.Spark.secure;
@@ -14,10 +17,12 @@ import freemarker.template.TemplateExceptionHandler;
 import java.io.File;
 import java.util.List;
 import org.openforis.ceo.collect.CollectImagery;
+import org.openforis.ceo.collect.CollectPlots;
 import org.openforis.ceo.collect.CollectProjects;
 import org.openforis.ceo.db_api.GeoDash;
 import org.openforis.ceo.db_api.Imagery;
 import org.openforis.ceo.db_api.Institutions;
+import org.openforis.ceo.db_api.Plots;
 import org.openforis.ceo.db_api.Projects;
 import org.openforis.ceo.db_api.TimeSync;
 import org.openforis.ceo.db_api.Users;
@@ -26,12 +31,14 @@ import org.openforis.ceo.env.CorsFilter;
 import org.openforis.ceo.local.JsonGeoDash;
 import org.openforis.ceo.local.JsonImagery;
 import org.openforis.ceo.local.JsonInstitutions;
+import org.openforis.ceo.local.JsonPlots;
 import org.openforis.ceo.local.JsonProjects;
 import org.openforis.ceo.local.JsonTimeSync;
 import org.openforis.ceo.local.JsonUsers;
 import org.openforis.ceo.postgres.PostgresGeoDash;
 import org.openforis.ceo.postgres.PostgresImagery;
 import org.openforis.ceo.postgres.PostgresInstitutions;
+import org.openforis.ceo.postgres.PostgresPlots;
 import org.openforis.ceo.postgres.PostgresProjects;
 import org.openforis.ceo.postgres.PostgresTimeSync;
 import org.openforis.ceo.postgres.PostgresUsers;
@@ -61,93 +68,110 @@ public class Server implements SparkApplication {
     // Sets up Spark's routing table and exception handling rules
     private static void declareRoutes(String databaseType, Projects projects, Imagery imagery,
                                       Users users, Institutions institutions, GeoDash geoDash,
-                                      TimeSync timeSync) {
+                                      Plots plots, TimeSync timeSync) {
         // Create a configured FreeMarker renderer
         var freemarker = new FreeMarkerEngine(getConfiguration());
 
-        // FIXME: Get deploy/clientkeystore signed by a certificate authority.
-        // https://docs.oracle.com/cd/E19509-01/820-3503/ggfen/index.html
-        // https://spark.apache.org/docs/latest/security.html
+        // Enable HTTPS site-wide
+        // secure("deploy/keystore.jks", "collect", null, null);
         secure("deploy/tsceo.jks", "timesync", null, null);
 
         // Serve static files from src/main/resources/public/
         staticFileLocation("/public");
         CorsFilter.apply();
+
         // Allow token-based authentication if users are not logged in and we are using the COLLECT database
         if (databaseType.equals("COLLECT")) {
             before("/*", new CeoAuthFilter());
         }
 
+        // GZIP all responses to improve download speeds
+        after((request, response) -> { response.header("Content-Encoding", "gzip"); });
+
         // Routing Table: HTML pages (with no side effects)
         get("/",                                      Views.home(freemarker));
-        get("/home",                                  Views.home(freemarker));
         get("/about",                                 Views.about(freemarker));
-        get("/support",                               Views.support(freemarker));
         get("/account/:id",                           Views.account(freemarker));
-        get("/institution/:id",                       Views.institution(freemarker, databaseType.equals("COLLECT") ? "remote" : "local"));
+        get("/card-test",                             Views.cardTest(freemarker));
+        get("/create-institution",                    Views.createInstitution(freemarker));
+        get("/create-project",                        Views.createProject(freemarker));
         get("/collection/:id",                        Views.collection(freemarker));
         get("/geo-dash",                              Views.geodash(freemarker));
-        get("/widget-layout-editor",                  Views.editWidgetLayout(freemarker));
-        get("/test-layout-editor",                    Views.testWidgetLayout(freemarker));
-        get("/project/:id",                           Views.project(freemarker));
+        get("/geo-dash/geodashhelp",                  Views.geodashhelp(freemarker));
+        get("/home",                                  Views.home(freemarker));
         get("/login",                                 Views.login(freemarker));
-        get("/register",                              Views.register(freemarker));
         get("/password",                              Views.password(freemarker));
         get("/password-reset",                        Views.passwordReset(freemarker));
-        get("/card-test",                             Views.cardTest(freemarker));
-        get("/timesync/:id",                          Views.timeSync(freemarker));
-        // get("/timesync-dash",                         Views.timeSyncDash(freemarker));
+        get("/project-dashboard/:id",                 Views.projectDashboard(freemarker));
+        get("/register",                              Views.register(freemarker));
+        get("/review-institution/:id",                Views.reviewInstitution(freemarker, databaseType.equals("COLLECT") ? "remote" : "local"));
+        get("/review-project/:id",                    Views.reviewProject(freemarker));
+        get("/support",                               Views.support(freemarker));
+        get("/test-layout-editor",                    Views.testWidgetLayout(freemarker));
+        get("/widget-layout-editor",                  Views.editWidgetLayout(freemarker));
+        get("/timesync/:id",                          Views.timesync(freemarker));
+//        get("/timesync-dash",                         Views.timeSyncDash(freemarker));
 
         // Routing Table: HTML pages (with side effects)
+        get("/logout",                                (req, res) -> Views.home(freemarker).handle(users.logout(req, res), res));
         post("/account/:id",                          (req, res) -> Views.account(freemarker).handle(users.updateAccount(req, res), res));
         post("/login",                                (req, res) -> Views.login(freemarker).handle(users.login(req, res), res));
         post("/register",                             (req, res) -> Views.register(freemarker).handle(users.register(req, res), res));
         post("/password",                             (req, res) -> Views.password(freemarker).handle(users.getPasswordResetKey(req, res), res));
         post("/password-reset",                       (req, res) -> Views.passwordReset(freemarker).handle(users.resetPassword(req, res), res));
-        get("/logout",                                (req, res) -> Views.home(freemarker).handle(users.logout(req, res), res));
 
         // Routing Table: Projects API
-        get("/get-all-projects",                      projects::getAllProjects);
-        get("/get-project-by-id/:id",                 projects::getProjectById);
-        get("/get-project-plots/:id/:max",            projects::getProjectPlots);
-        get("/get-project-plot/:project-id/:plot-id", projects::getProjectPlot);
-        get("/get-project-stats/:id",                 projects::getProjectStats);
-        get("/get-unanalyzed-plot/:id",               projects::getUnassignedPlot);
-        get("/get-unanalyzed-plot-by-id/:projid/:id", projects::getUnassignedPlotById);
         get("/dump-project-aggregate-data/:id",       projects::dumpProjectAggregateData);
         get("/dump-project-raw-data/:id",             projects::dumpProjectRawData);
+        get("/get-all-projects",                      projects::getAllProjects);
+        get("/get-project-by-id/:id",                 projects::getProjectById);
+        get("/get-project-stats/:id",                 projects::getProjectStats);
+        post("/archive-project/:id",                  projects::archiveProject);
+        post("/close-project/:id",                    projects::closeProject);
         post("/create-project",                       projects::createProject);
         post("/publish-project/:id",                  projects::publishProject);
-        post("/close-project/:id",                    projects::closeProject);
-        post("/archive-project/:id",                  projects::archiveProject);
-        post("/add-user-samples",                     projects::addUserSamples);
-        post("/flag-plot",                            projects::flagPlot);
+
+        // Routing Table: Plots (projects)
+        get("/get-next-plot",                         plots::getNextPlot);
+        get("/get-plot-by-id",                        plots::getPlotById);
+        get("/get-prev-plot",                         plots::getPrevPlot);
+        get("/get-project-plots/:id/:max",            plots::getProjectPlots);
+        get("/get-proj-plot/:projid/:plotid",         plots::getProjectPlot);
+        post("/add-user-samples",                     plots::addUserSamples);
+        post("/flag-plot",                            plots::flagPlot);
+        post("/release-plot-locks/:userid/:projid",   plots::releasePlotLocks);
+        post("/reset-plot-lock",                      plots::resetPlotLock);
 
         // Routing Table: Users API
         get("/get-all-users",                         users::getAllUsers);
+        get("/get-institution-users/:id",             users::getInstitutionUsers);
+        get("/get-user-stats/:userid",                users::getUserStats);
+        get("/update-project-user-stats",             users::updateProjectUserStats);
         post("/update-user-institution-role",         users::updateInstitutionRole);
         post("/request-institution-membership",       users::requestInstitutionMembership);
 
         // Routing Table: Institutions API
         get("/get-all-institutions",                  institutions::getAllInstitutions);
         get("/get-institution-details/:id",           institutions::getInstitutionDetails);
-        post("/update-institution/:id",               institutions::updateInstitution);
         post("/archive-institution/:id",              institutions::archiveInstitution);
+        post("/create-institution",                   institutions::createInstitution);
+        post("/update-institution/:id",               institutions::updateInstitution);
 
         // Routing Table: Imagery API
         get("/get-all-imagery",                       imagery::getAllImagery);
-        post("/add-institution-imagery",              imagery::addInstitutionImagery);
         post("/add-geodash-imagery",                  imagery::addGeoDashImagery);
+        post("/add-institution-imagery",              imagery::addInstitutionImagery);
         post("/delete-institution-imagery",           imagery::deleteInstitutionImagery);
 
         // Routing Table: GeoDash API
         get("/geo-dash/id/:id",                       geoDash::geodashId);
         get("/geo-dash/update/id/:id",                geoDash::updateDashBoardById);
-        get("/geo-dash/createwidget/widget",          geoDash::createDashBoardWidgetById);
-        get("/geo-dash/updatewidget/widget/:id",      geoDash::updateDashBoardWidgetById);
-        get("/geo-dash/deletewidget/widget/:id",      geoDash::deleteDashBoardWidgetById);
+        post("/geo-dash/createwidget/widget",         geoDash::createDashBoardWidgetById);
+        post("/geo-dash/deletewidget/widget/:id",     geoDash::deleteDashBoardWidgetById);
+        post("/geo-dash/gateway-request",             geoDash::gatewayRequest);
+        post("/geo-dash/updatewidget/widget/:id",     geoDash::updateDashBoardWidgetById);
 
-        // Routing Table: TimeSync API
+        // Routing Table: TimeSync
         get("/timesync/version",                      timeSync::getVersion);
         get("/timesync/project/:interpreter",         timeSync::getAssignedProjects);
         get("/timesync/plot/:interpreter/:project_id/:packet", timeSync::getPlots);
@@ -157,12 +181,23 @@ public class Server implements SparkApplication {
         post("/timesync/comment/save",                timeSync::saveComment);
         get("/timesync/comment/:interpreter/:project_id/:plotid/:packet", timeSync::getComment);
 
-        
+
         // Routing Table: Page Not Found
-        get("*",                                      Views.pageNotFound(freemarker));
+        notFound(Views.pageNotFound(freemarker));
 
         // Handle Exceptions
         exception(Exception.class, (e, req, res) -> e.printStackTrace());
+    }
+
+    // Setup a proxy server on port 4567 to redirect incoming http traffic to port 8080 as https
+    private static void redirectHttpToHttps() {
+        var http = ignite().port(4567);
+        http.get("*", (req, res) -> {
+                var httpsUrl = req.url().replaceFirst("^http:", "https:").replace(":4567", ":8080");
+                System.out.println("Redirecting from " + req.url() + " to " + httpsUrl);
+                res.redirect(httpsUrl);
+                return res;
+            });
     }
 
     // Maven/Gradle entry point for running with embedded Jetty webserver
@@ -183,8 +218,11 @@ public class Server implements SparkApplication {
         CeoConfig.smtpPort      = smtpSettings.get("smtpPort").getAsString();
         CeoConfig.smtpPassword  = smtpSettings.get("smtpPassword").getAsString();
 
-        // Start the Jetty webserver on port 8080
+        // Start the HTTPS Jetty webserver on port 8080
         port(8080);
+
+        // Start the HTTP Jetty webserver on port 4567 to redirect traffic to the HTTPS Jetty webserver
+        redirectHttpToHttps();
 
         if (args[0].equals("JSON")) {
             // Set up the routing table to use the JSON backend
@@ -194,6 +232,7 @@ public class Server implements SparkApplication {
                           new JsonUsers(),
                           new JsonInstitutions(),
                           new JsonGeoDash(),
+                          new JsonPlots(),
                           new JsonTimeSync());
         } else {
             // Set up the routing table to use the POSTGRES backend
@@ -203,12 +242,17 @@ public class Server implements SparkApplication {
                           new PostgresUsers(),
                           new PostgresInstitutions(),
                           new PostgresGeoDash(),
+                          new PostgresPlots(),
                           new PostgresTimeSync());
         }
     }
 
     // Tomcat entry point
     public void init() {
+        // FIXME: I'm not entirely sure this will work with Tomcat. This should be tested.
+        // Start the HTTP Jetty webserver on port 4567 to redirect traffic to the HTTPS Tomcat webserver
+        redirectHttpToHttps();
+
         // Set up the routing table
         declareRoutes("COLLECT",
                       new CollectProjects(),
@@ -216,7 +260,8 @@ public class Server implements SparkApplication {
                       new OfUsers(),
                       new OfGroups(),
                       new JsonGeoDash(),
-                      new JsonTimeSync());
+                      new CollectPlots(),
+                      new JsonTimeSync()); //TODO: is this the right object to use here?
     }
 
 }

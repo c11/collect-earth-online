@@ -205,24 +205,24 @@ function processAnnualSpectrals(tsdata) {
   for (let i = 0; i < n_chips; i++) {
     // data.Values.push(parseSpectralData(origData, i));
     data.Values.push({...origData[i]});
-    yearList.push(origData[i].image_year);
-  }
+            yearList.push(origData[i].image_year);
+        }
 
-  var maxXdomain = d3.max(yearList)+1;
-  var minXdomain = d3.min(yearList)-1;
-  defaultDomain.year.max = maxXdomain;
-  currentDomain.year.max = maxXdomain;
-  defaultDomain.year.min = minXdomain;
-  currentDomain.year.min = minXdomain;
+        var maxXdomain = d3.max(yearList)+1;
+        var minXdomain = d3.min(yearList)-1;
+        defaultDomain.year.max = maxXdomain;
+        currentDomain.year.max = maxXdomain;
+        defaultDomain.year.min = minXdomain;
+        currentDomain.year.min = minXdomain;
   
-  data = calcIndices(data); //reset global - calculate the spectral indices
-  rgbColor = scaledRGB(data, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, n_chips); //reset global - calculate the rbg color
-  data = calcDecDate(data); //could wrap this into data appending push function
-  /*	YANG: 2016.08.06: warren want to change it to global stretch
-  Yang: 2016.08.31: warren want to change it back to always local stretch */
-  if (!currentDomain.hasCustomizedXY) {
-      updateStretch();
-  }
+        data = calcIndices(data); //reset global - calculate the spectral indices
+        rgbColor = scaledRGB(data, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, n_chips); //reset global - calculate the rbg color
+        data = calcDecDate(data); //could wrap this into data appending push function
+        /*	YANG: 2016.08.06: warren want to change it to global stretch
+        Yang: 2016.08.31: warren want to change it back to always local stretch */
+        if (!currentDomain.hasCustomizedXY) {
+            updateStretch();
+        }
 }
 
 /**
@@ -239,14 +239,16 @@ function processAllSpectrals(dat) {
   });
   //make sure that all of the urls have been added to "allData" before getting the plot interps and plotting the points 
   // - need "selectThese" to be determined first - any other way and asynchronous loading will mess it up
-  allData = calcIndices(allData); //reset global - calculate the spectral indices
-  allDataRGBcolor = scaledRGB(allData, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, allData.Values.length); //reset global - calculate the rbg color
-  allData = calcDecDate(allData); //could wrap this into data appending push function
-  allDecdate = [];
+                    allData = calcIndices(allData); //reset global - calculate the spectral indices
+                    allDataRGBcolor = scaledRGB(allData, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, allData.Values.length); //reset global - calculate the rbg color
+                    allData = calcDecDate(allData); //could wrap this into data appending push function
+                    allDecdate = [];
 
-  allData.Values.forEach(function(v){
+                    allData.Values.forEach(function(v){
       allDecdate.push(v.decDate);
   });
+  plotInt(true);
+  $("#btnPoints").attr('disabled', false); //reenable all plots button
 }
 /**
  * extract previous interpretation
@@ -265,23 +267,23 @@ function extractInterpretation(tsdata, comment, isExample) {
       //TODO: is shallow copying ok here.
       v.index = i;
       vertInfo.push(_.pick(v, ['image_year', 'image_julday', 'index', 'landUse', 'landCover', 'changeProcess','isVertex']));
-    }
+                                    }
   })
 
-  //check to see if vert info has been filled in for this plot
-  if(vertInfo.length !=0){
-    for(var i=0;i<vertInfo.length;i++){
-        selectThese.push(vertInfo[i].index); //reset global
-    }
-  } else{
+                        //check to see if vert info has been filled in for this plot
+                        if(vertInfo.length !=0){
+                            for(var i=0;i<vertInfo.length;i++){
+                                selectThese.push(vertInfo[i].index); //reset global
+                            }
+                        } else{
     selectThese = [0,tsdata.length-1];
-    for(var i=0;i<selectThese.length;i++){
+                            for(var i=0;i<selectThese.length;i++){
         vertInfo.push({image_year:origData[selectThese[i]].image_year,image_julday:origData[selectThese[i]].image_julday,index:selectThese[i],iid:origData[selectThese[i]].iid,isVertex:true,landUse:{
-                primary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}},
-                secondary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}}
-            },landCover:{landCover:"",other:{trees:false,shrubs:false,grassForbHerb:false,impervious:false,naturalBarren:false,snowIce:false,water:false}},changeProcess:{changeProcess:"",notes:{natural:false,prescribed:false,sitePrepFire:false,airphotoOnly:false,clearcut:false,thinning:false,flooding:false,reserviorLakeFlux:false,wetlandDrainage:false}}})
-    }
-  }
+                                        primary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}},
+                                        secondary:{landUse:"",notes:{wetland:false,mining:false,rowCrop:false,orchardTreeFarm:false,vineyardsOtherWoody:false}}
+                                    },landCover:{landCover:"",other:{trees:false,shrubs:false,grassForbHerb:false,impervious:false,naturalBarren:false,snowIce:false,water:false}},changeProcess:{changeProcess:"",notes:{natural:false,prescribed:false,sitePrepFire:false,airphotoOnly:false,clearcut:false,thinning:false,flooding:false,reserviorLakeFlux:false,wetlandDrainage:false}}})
+                            }
+                        }
 }
 
 function toggleSpinner(show) {
@@ -298,23 +300,23 @@ function toggleSpinner(show) {
 
 function updateUI() {
   //update UI
-  fillInForm() //fill out the form inputs
+                        fillInForm() //fill out the form inputs
   $("#commentInput").val(comment);
   $("#isExampleCheckbox").prop("checked", isExample == 1);
-  plotInt(); //draw the points
-  makeChipInfo("json", origData)
-  appendSrcImg(); //append the src imgs
-  appendChips("annual",selectThese); //append the chip div/canvas/img set
-  //once the imgs have loaded make the chip info and draw the img to the canvas and display the time-lapse feature
-  $("#img-gallery").imagesLoaded(function(){
+  plotInt(false); //draw the points
+                        makeChipInfo("json", origData)
+                        appendSrcImg(); //append the src imgs
+                        appendChips("annual",selectThese); //append the chip div/canvas/img set
+                        //once the imgs have loaded make the chip info and draw the img to the canvas and display the time-lapse feature
+                        $("#img-gallery").imagesLoaded(function(){
     //makeChipInfo("json", origData); 
     //chip info array gets set in "appendChips" 
     //gets filled out here because we have to wait 
     //until the imgs have loaded to get their height 
     //(used when chip strip is the src - not needed when chips are singles)
-    drawAllChips("annual");	//draw the imgs to the canvas
+                            drawAllChips("annual");	//draw the imgs to the canvas
     toggleSpinner(false);
-  });
+    });
 }
 
 /**
@@ -342,6 +344,7 @@ function updateUI() {
  */
 function getData(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,activeBlueSpecIndex,ylabel){
   let urls = getUrls(sessionInfo);
+
   //load interpretation
   fetch(urls.vertices)
     .then(res => res.json())
@@ -364,17 +367,19 @@ function getData(sessionInfo,specIndex,activeRedSpecIndex,activeGreenSpecIndex,a
           processAnnualSpectrals(tsdata.timeseries);
           extractInterpretation(tsdata.timeseries, "", 0);
           updateUI();
-        })
+                    })
         .catch(err=> {
           console.log(err);
           alert("Error retrieving plot spectral data.");
-        });
-    });
+                            });
+                        });
 
   //retrieve all spectral data
+  $("#btnPoints").attr('disabled', true); //disable all points button
   fetch(urls.allSpec)
     .then(res=>res.json())
     .then(dat => processAllSpectrals(dat.timeseries));
+
 }
 
 /**
@@ -464,7 +469,7 @@ $('#commentInput').keypress(function(){
 
 //TODO: TSCEO export timesync data
 $('#exportBtn').click(function(event) {
-    return;
+        return;
     // var target = 'exportts.php?t=' + authHeader + '&pid=' + sessionInfo.projectID + '&uid=' + sessionInfo.userID;
     // if (sessionInfo.projectID == '') {
     //     return;
@@ -859,7 +864,7 @@ function zoomDraw() {
 
 //define function to initialize the spectral trajectory
 var plotDrawn = 0; //global variable needed for the window resize
-function plotInt(){
+function plotInt(allDataOnly){
     plotDrawn = 1
     //get the range of the x values
     var showPoints = $("#allPointsDisplayThumb").hasClass("glyphicon-thumbs-down");
@@ -971,12 +976,6 @@ function plotInt(){
         .attr("y2", function(d){return 20000})
         .attr("class","vline")
 
-    //draw the y axis
-    svg.append("g")
-        .attr("class", "y axis")
-        .attr("transform", "translate(" + pl + ",0)")
-        .call(yaxis);
-
     //append all the points
     allCircles = svg.selectAll(".allData")
         .data(allData.Values)
@@ -998,6 +997,16 @@ function plotInt(){
         .attr("cy", function(d){return yscale(d[specIndex]);})
         .attr("r", 3)
         .attr("class","allData");
+
+    if (allDataOnly) {
+      return;
+    }
+
+    //draw the y axis
+    svg.append("g")
+        .attr("class", "y axis")
+        .attr("transform", "translate(" + pl + ",0)")
+        .call(yaxis);
 
     //append the representative points
     var rad = w*0.0085;
@@ -1100,7 +1109,7 @@ function plotInt(){
             .attr("x", xscale(d.decDate))
             .attr("y", yscale(d[specIndex]) - 10)
             .style("opacity", 1);
-        })
+    })
         .on("mouseout", function(d){
             doyTxt.style("opacity", 0);
         });
@@ -1111,7 +1120,7 @@ function plotInt(){
             .attr("x", xscale(d.decDate))
             .attr("y", yscale(d[specIndex]) - 20)
             .style("opacity", 1);
-        })
+    })
         .on("mouseout", function(d){
             doyTxt.style("opacity", 0);
         });
@@ -1315,7 +1324,7 @@ $(window).resize(function(r){
         $("#svg").empty(); //reset
         selectedCircles = []; //reset
         lineData = []; //reset
-        plotInt(); //redraw the plot
+        plotInt(false); //redraw the plot
     }
 });
 
@@ -1590,7 +1599,7 @@ $("#btnPoints").click(function(){
 $("#showAnomaly").click(function(){
     $("#svg").empty();
     lineData = [];
-    plotInt();
+    plotInt(false);
 });
 
 $("#highlightColor").change(function(){
@@ -1687,8 +1696,8 @@ function saveVertInfo(sessionInfo, vertInfo){
         else {
             console.log(response);
             alert("Error saving TimeSync interpretation.");
-        }
-    });
+    }
+        });
 }
 
 

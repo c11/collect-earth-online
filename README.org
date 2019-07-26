@@ -16,7 +16,7 @@ In order to build and run Collect Earth Online, you will need:
 ** Running with an Embedded Jetty Webserver
 
 This is the simplest solution to get up and running quickly. The
-application will be available at http://localhost:8080.
+application will be available at https://localhost:8080.
 
 *** With Maven
 
@@ -55,6 +55,51 @@ sudo ln -s $PWD/build/libs/collect-earth-online-<version>.war $TOMCAT_HOME/webap
 sudo $TOMCAT_HOME/bin/startup.sh
 #+end_src
 
+*** Adding Analytics
+If you would like to add google analytics to your site you can follow these directions
+1. Visit https://analytics.google.com and create your analytics account for the site.
+2. Copy the .js Tracking Info code
+3. Create file /src/main/resources/template/freemarker/googleanalytics.ftl
+4. Paste .js Tracking Info code in googleanalytics.ftl
+5. restart application
+
+*** Enabling https
+We recommend that you enable https so that all features work properly and securely.  These directions are for the domain collect.earth.
+You will have to replace that with your domain every place you see it in the instructions.
+1. Install certbot by following the instructions located at https://certbot.eff.org/ for your system. Below is the example for Arch Linux:
+#+begin_src sh
+    sudo pacman -S certbot openssl
+#+end_src
+2. Create initial cert:
+#+begin_src sh
+    export CEO_DIR="/home/openforis/github/collect-earth-online" 
+    export CERT_DOMAIN="collect.earth"
+	
+    sudo certbot certonly --webroot -w $CEO_DIR/target/classes/public -d $CERT_DOMAIN
+#+end_src
+3. Package the cert into the JKS:
+#+begin_src sh
+    export CERT_PASSWORD="collect"
+    export CACERT_PASSWORD="changeit"
+	
+    sudo openssl pkcs12 -export -in /etc/letsencrypt/live/$CERT_DOMAIN/cert.pem -inkey /etc/letsencrypt/live/$CERT_DOMAIN/privkey.pem -out ceo.p12 -name ceo -passout pass:$CERT_PASSWORD
+	
+	sudo keytool -importkeystore -destkeystore keystore.jks -srckeystore ceo.p12 -srcstoretype PKCS12 -storepass $CERT_PASSWORD -srcstorepass $CERT_PASSWORD -alias ceo -noprompt
+	
+	sudo keytool --importcert -file /etc/letsencrypt/live/$CERT_DOMAIN/fullchain.pem -keystore /etc/ssl/certs/java/cacerts -v -alias ceo_chain -storepass $CACERT_PASSWORD -noprompt
+#+end_src
+4. Edit the gee-gateway config.py CERT and KEY entries to point to the cert.pem and privatekey.pem just created.
+5. Edit collect-earth-online/deploy/scripts/cert_renewal.sh variables CEO_DIR, and CERT_DOMAIN:
+    a. CEO_DIR should point to the location of your collect-earth-online install.
+    b. CERT_DOMAIN should be the domain you will be using for your application.
+6. Edit collect-earth-online/deploy/scripts/packageKeysAndRestartApps.sh variables CERT_DOMAIN, CERT_PASSWORD, and CACERT_PASSWORD:
+    a. CERT_DOMAIN should be the domain you will be using for your application.
+    b. CERT_PASSWORD should be the password you would like to use for the certificate.
+    c. CACERT_PASSWORD should be the password for java cacerts keystore (default is changeit.)
+7. Edit collect-earth-online/deploy/scripts/startceo.sh variable CEO_DIR:
+    a. CEO_DIR should point to the location of your collect-earth-online install.
+8. Edit collect-earth-online/deploy/scripts/startgeegateway.sh variable GEE_DIR:
+    a. GEE_DIR should point to the location of your gee-gateway install.
 ** Building OpenForis Collect
 
 In order to easily exchange information with OpenForis' other software
@@ -180,6 +225,78 @@ mkdir /your/home/directory/.openforis
 sudo $TOMCAT_HOME/bin/startup.sh
 #+end_src
 
+** Building GEE-Gateway
+
+In order to use the Geo-Dash portion of CEO, we need to install
+an application to communicate with Google Earth Engine called GEE-Gateway.
+To build and launch GEE-Gateway, download the source code from
+https://github.com/openforis/gee-gateway and then follow these steps:
+
+*** REQUIREMENTS
+
+1. [Python 2.7](https://www.python.org/)
+2. [pip (package manager)](https://github.com/pypa/pip)
+3. [Earth Engine Python API](https://developers.google.com/earth-engine/python_install)
+4. [virtualenv](https://pypi.python.org/pypi/virtualenv) (Optional)
+
+*** INSTALLATION
+
+From project root directory
+
+#+begin_src sh
+pip install -r requirements.txt
+#+end_src
+
+OR using /virtualenv/ (Optional)
+
+#+begin_src sh
+virtualenv env
+source env/bin/activate
+pip install -r requirements.txt
+#+end_src
+
+*** CONFIGURATION
+
+Edit the configuration file (*config.py* or *instance/config.py*)
+
+#begin_src python 
+DEBUG = False # {True|False}
+PORT = 8888 # flask server running port
+HOST = '0.0.0.0' # flask server running host
+CO_ORIGINS = '*' # origin or list of origins to allow requests from
+import logging
+LOGGING_LEVEL = logging.INFO # {NOTSET|DEBUG|INFO|WARNING|ERROR|CRITICAL}
+#end_src 
+
+*** EXECUTION
+
+From project root directory
+
+#begin_src sh 
+python run.py
+#end_src 
+
+OR using /virtualenv/ (Optional)
+
+#begin_src sh 
+source env/bin/activate
+python run.py
+#end_src
+
+#begin_src sh 
+usage: run.py [-h] [--gmaps_api_key GMAPS_API_KEY] [--ee_account EE_ACCOUNT]
+              [--ee_key_path EE_KEY_PATH]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --gmaps_api_key GMAPS_API_KEY
+                        Google Maps API key
+  --ee_account EE_ACCOUNT
+                        Google Earth Engine account
+  --ee_key_path EE_KEY_PATH
+                        Google Earth Engine key path
+#end_src
+
 ** Contact
 
 *Authors:*
@@ -190,6 +307,7 @@ sudo $TOMCAT_HOME/bin/startup.sh
 - Stefano Ricci (FAO)
 - Roberto Fontanarosa (FAO)
 - Alfonso SanchezPausDiaz (FAO)
+- Matt Spencer (SIG)
 
 *Emails:*
 
@@ -200,3 +318,4 @@ sudo $TOMCAT_HOME/bin/startup.sh
 - stefano.ricci@fao.org
 - roberto.fontanarosa@fao.org
 - alfonso.sanchezpausdiaz@fao.org
+- semail@snasa.io
