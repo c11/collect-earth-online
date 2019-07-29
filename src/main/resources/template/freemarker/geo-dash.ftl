@@ -1,5 +1,5 @@
 <#include "header.ftl">
-<#include "geodash-navbar.ftl">
+<#include "geo-dash-navbar.ftl">
 <#include "start-content.ftl">
 <br style="clear:both">
 <div class="container-fluid">
@@ -26,12 +26,14 @@
      return decodeURIComponent(results[2].replace(/\+/g, " "));
  }
 </script>
-<script type="text/javascript" src="${root}/js/vendors~account~collection~create_institution~create_project~geodashreact~home~project_dashboard~rev~1b583733.bundle.js"></script>
-<script type="text/javascript" src="${root}/js/collection~create_project~geodashreact~home~project_dashboard~review_project.bundle.js"></script>
-<script type="text/javascript" src="${root}/js/geodashreact.bundle.js"></script>
+
+<!-- Auto Inserted Bundles -->
+
+<!-- End Auto Inserted Bundles -->
+
 <script type="text/javascript">
  window.onload = function () {
-     geodashreact.renderGeodashPage("${root}");
+     geo_dash.renderGeodashPage("${root}");
  };
 </script>
 <#include "end-content.ftl">

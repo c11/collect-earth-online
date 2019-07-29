@@ -6,6 +6,7 @@ import static org.openforis.ceo.utils.JsonUtils.parseJson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.sql.SQLException;
+import java.util.List;
 import org.openforis.ceo.db_api.Imagery;
 import spark.Request;
 import spark.Response;
@@ -40,7 +41,15 @@ public class PostgresImagery implements Imagery {
                     newImagery.add("extent", rs.getString("extent") == null || rs.getString("extent").equals("null")
                         ? null
                         : parseJson(rs.getString("extent")).getAsJsonArray());
-                    newImagery.add("sourceConfig", parseJson(rs.getString("source_config")).getAsJsonObject());
+                    var sourceConfig = parseJson(rs.getString("source_config")).getAsJsonObject();
+                    // Return only necessary fields for types we proxy
+                    if (List.of("DigitalGlobe", "EarthWatch", "Planet", "GeoServer").contains(sourceConfig.get("type").getAsString())) {
+                        var cleanSource = new JsonObject();
+                        cleanSource.add("type", sourceConfig.get("type"));
+                        newImagery.add("sourceConfig", cleanSource);
+                    } else {
+                        newImagery.add("sourceConfig", sourceConfig);
+                    };
 
                     imageryArray.add(newImagery);
                 }
@@ -53,27 +62,28 @@ public class PostgresImagery implements Imagery {
         }
     }
 
+    public JsonObject getImagerySourceConfig(Integer imageryId) {
+        try (var conn = connect();
+             var pstmt = conn.prepareStatement("SELECT * FROM imagery WHERE imagery_uid=?")) {
+                pstmt.setInt(1, imageryId);
+            try (var rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return parseJson(rs.getString("source_config")).getAsJsonObject();
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return new JsonObject();
+    }
+
     public String addInstitutionImagery(Request req, Response res) {
         try {
             var jsonInputs            = parseJson(req.body()).getAsJsonObject();
             var institutionId         = jsonInputs.get("institutionId").getAsInt();
             var imageryTitle          = jsonInputs.get("imageryTitle").getAsString();
             var imageryAttribution    = jsonInputs.get("imageryAttribution").getAsString();
-            var geoserverURL          = jsonInputs.get("geoserverURL").getAsString();
-            var layerName             = jsonInputs.get("layerName").getAsString();
-            var geoserverParamsString = jsonInputs.get("geoserverParams").getAsString();
-            var geoserverParams       = geoserverParamsString.equals("")
-                                            ? new JsonObject()
-                                            : parseJson(geoserverParamsString).getAsJsonObject();
-
-            // Add layerName to geoserverParams
-            geoserverParams.addProperty("LAYERS", layerName);
-
-            // Create a new source configuration for this imagery
-            var sourceConfig = new JsonObject();
-            sourceConfig.addProperty("type", "GeoServer");
-            sourceConfig.addProperty("geoserverUrl", geoserverURL);
-            sourceConfig.add("geoserverParams", geoserverParams);
+            var sourceConfig          = jsonInputs.get("sourceConfig").getAsJsonObject();
 
             try (var conn = connect();
                 var pstmt = conn.prepareStatement(

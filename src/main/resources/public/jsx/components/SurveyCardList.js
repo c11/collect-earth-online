@@ -1,5 +1,6 @@
 import React, { Fragment } from "react";
 import { removeEnumerator } from "../utils/surveyUtils";
+import { UnicodeIcon } from "../utils/textUtils";
 
 export default function SurveyCardList(props) {
     const topLevelNodes = props.surveyQuestions
@@ -31,8 +32,8 @@ class SurveyCard extends React.Component {
             showQuestions: true,
             surveyRules: [],
             currentRules: [],
-        }
-    };
+        };
+    }
 
     swapQuestionIds = (upOrDown) => {
         const myId = this.props.surveyQuestion.id;
@@ -51,7 +52,7 @@ class SurveyCard extends React.Component {
     };
 
     render() {
-        const {cardNumber, surveyQuestion, inDesignMode, topLevelNodeIds} = this.props;
+        const { cardNumber, surveyQuestion, inDesignMode, topLevelNodeIds } = this.props;
         return (
             <div className="SurveyCard border rounded border-dark">
                 <div className="container">
@@ -60,7 +61,8 @@ class SurveyCard extends React.Component {
                             <button
                                 type="button"
                                 className="btn btn-outline-lightgreen my-1 px-3 py-0"
-                                onClick={() => this.setState({showQuestions: !this.state.showQuestions})}>
+                                onClick={() => this.setState({ showQuestions: !this.state.showQuestions })}
+                            >
                                 <span className="font-weight-bold">{this.state.showQuestions ? "-" : "+"}</span>
                             </button>
                             <h2 className="font-weight-bold mt-2 pt-1 ml-2">Survey Card Number {cardNumber}</h2>
@@ -79,16 +81,18 @@ class SurveyCard extends React.Component {
                                     className="btn btn-outline-lightgreen my-1 px-3 py-0"
                                     onClick={() => this.swapQuestionIds(-1)}
                                     disabled={surveyQuestion.id === topLevelNodeIds[0]}
-                                    style={{opacity: surveyQuestion.id === topLevelNodeIds[0] ? "0.25" : "1.0"}}>
-                                    <i className={"fa fa-caret-up"}/>
+                                    style={{ opacity: surveyQuestion.id === topLevelNodeIds[0] ? "0.25" : "1.0" }}
+                                >
+                                    <UnicodeIcon icon="upCaret"/>
                                 </button>
                                 <button
                                     type="button"
                                     className="btn btn-outline-lightgreen my-1 px-3 py-0"
                                     onClick={() => this.swapQuestionIds(1)}
                                     disabled={surveyQuestion.id === topLevelNodeIds[topLevelNodeIds.length - 1]}
-                                    style={{opacity: surveyQuestion.id === topLevelNodeIds[topLevelNodeIds.length - 1] ? "0.25" : "1.0"}}>
-                                    <i className={"fa fa-caret-down"}/>
+                                    style={{ opacity: surveyQuestion.id === topLevelNodeIds[topLevelNodeIds.length - 1] ? "0.25" : "1.0" }}
+                                >
+                                    <UnicodeIcon icon="downCaret"/>
                                 </button>
                             </div>
                         }
@@ -125,7 +129,7 @@ function SurveyQuestionTree({
     surveyQuestion,
     surveyQuestions,
     surveyRules,
-    setSurveyQuestions
+    setSurveyQuestions,
 }) {
     const childNodes = surveyQuestions.filter(sq => sq.parentQuestion === surveyQuestion.id);
     const parentQuestion = surveyQuestions.find(sq => sq.id === surveyQuestion.parentQuestion);
@@ -134,7 +138,7 @@ function SurveyQuestionTree({
             <div className="SurveyQuestionTree__question d-flex border-top pt-3 pb-1">
                 {[...Array(indentLevel)].map((e, i) =>
                     <div key={i} className="pl-4">
-                        <i className={"fa fa-arrow-right"} />
+                        <UnicodeIcon icon="rightArrow"/>
                     </div>
                 )}
 
@@ -160,37 +164,39 @@ function SurveyQuestionTree({
                                 <span className="font-weight-bold">Component Type:  </span>
                                 {surveyQuestion.componentType + " - " + surveyQuestion.dataType}
                             </li>
-                                }
-                                {(surveyRules && surveyRules.length > 0 && !inSimpleMode) &&
+                            }
+                            {(surveyRules && surveyRules.length > 0 && !inSimpleMode) &&
                                 <li>
                                     <span className="font-weight-bold">Rules:  </span>
                                     <ul>
-                                    {
-                                        surveyRules.map((rule, uid) => {
-                                            return [rule.questionId, rule.question1, rule.question2].concat(rule.questions).concat(rule.questionSetIds1).concat(rule.questionSetIds2).includes(surveyQuestion.id)
-                                                ? <li key={uid}><a href={"#rule" + rule.id}>{"Rule " + rule.id + ": " + rule.ruleType}</a></li>
-                                                : null;
-                                        })
-                                    }
+                                        {surveyRules.map((rule, uid) =>
+                                            [rule.questionId, rule.question1, rule.question2]
+                                                .concat(rule.questions)
+                                                .concat(rule.questionSetIds1)
+                                                .concat(rule.questionSetIds2)
+                                                .includes(surveyQuestion.id)
+                                                    ? <li key={uid}><a href={"#rule" + rule.id}>{"Rule " + rule.id + ": " + rule.ruleType}</a></li>
+                                                    : null
+                                        )}
                                     </ul>
                                 </li>
-                                }
-                                {surveyQuestion.parentQuestion > -1 &&
-                                    <Fragment>
-                                        <li>
-                                            <span className="font-weight-bold">Parent Question:  </span> 
-                                            {inDesignMode ? parentQuestion.question : removeEnumerator(parentQuestion.question)}
-                                        </li>
-                                        <li>
-                                            <span className="font-weight-bold">Parent Answer:  </span>
-                                            {surveyQuestion.parentAnswer === -1 
+                            }
+                            {surveyQuestion.parentQuestion > -1 &&
+                            <Fragment>
+                                <li>
+                                    <span className="font-weight-bold">Parent Question:  </span>
+                                    {inDesignMode ? parentQuestion.question : removeEnumerator(parentQuestion.question)}
+                                </li>
+                                <li>
+                                    <span className="font-weight-bold">Parent Answer:  </span>
+                                    {surveyQuestion.parentAnswer === -1
                                                 ? "Any"
                                                 : parentQuestion.answers
                                                     .find(ans => ans.id === surveyQuestion.parentAnswer).answer
                                     }
                                 </li>
                             </Fragment>
-                                }
+                            }
                         </ul>
                         <h3 className="font-weight-bold ml-3">Answers:  </h3>
                     </div>

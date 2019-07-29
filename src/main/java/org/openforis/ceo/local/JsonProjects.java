@@ -18,10 +18,13 @@ import static org.openforis.ceo.utils.JsonUtils.toElementStream;
 import static org.openforis.ceo.utils.JsonUtils.toStream;
 import static org.openforis.ceo.utils.JsonUtils.writeJsonFile;
 import static org.openforis.ceo.utils.PartUtils.writeFilePartBase64;
+import static org.openforis.ceo.utils.ProjectUtils.checkPlotLimits;
 import static org.openforis.ceo.utils.ProjectUtils.createGriddedPointsInBounds;
 import static org.openforis.ceo.utils.ProjectUtils.createGriddedSampleSet;
 import static org.openforis.ceo.utils.ProjectUtils.createRandomPointsInBounds;
 import static org.openforis.ceo.utils.ProjectUtils.createRandomSampleSet;
+import static org.openforis.ceo.utils.ProjectUtils.countGriddedSampleSet;
+import static org.openforis.ceo.utils.ProjectUtils.countGriddedPoints;
 import static org.openforis.ceo.utils.ProjectUtils.deleteShapeFileDirectories;
 import static org.openforis.ceo.utils.ProjectUtils.getOrEmptyString;
 import static org.openforis.ceo.utils.ProjectUtils.getOrZero;
@@ -35,6 +38,7 @@ import static org.openforis.ceo.utils.ProjectUtils.outputRawCsv;
 import static org.openforis.ceo.utils.ProjectUtils.padBounds;
 import static org.openforis.ceo.utils.ProjectUtils.reprojectBounds;
 import static org.openforis.ceo.utils.ProjectUtils.runBashScriptForProject;
+import static org.openforis.ceo.Views.redirectAuth;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
@@ -65,52 +69,66 @@ import spark.Response;
 
 public class JsonProjects implements Projects {
 
+    private Request redirectCommon(Request req, Response res, Boolean collect) {
+        final var userId = Integer.parseInt(req.session().attributes().contains("userid") ? req.session().attribute("userid").toString() : "0");
+        final var pProjectId = req.params(":id");
+        final var qProjectId = req.queryParams("pid");
+
+        final var projectId = pProjectId != null
+            ? pProjectId
+            : qProjectId != null
+                ? qProjectId
+                : "0";
+
+        final var project = singleProjectJson(projectId);
+        final var institutionRoles = (new JsonUsers()).getInstitutionRoles(userId);
+        final var role = institutionRoles.getOrDefault(project.get("institution").getAsInt(), "");
+        final var privacyLevel = project.get("privacyLevel").getAsString();
+        final var availability = project.get("availability").getAsString();
+
+        redirectAuth(req, res, canSeeProject(role, privacyLevel, availability, userId) && (collect || role.equals("admin")), userId);
+
+        return req;
+    }
+    public Request redirectNoCollect(Request req, Response res) {
+        return redirectCommon(req, res, true);
+    }
+
+    public Request redirectNoEdit(Request req, Response res) {
+        return redirectCommon(req, res, false);
+    }
+
+    private Boolean canSeeProject(String role, String privacyLevel, String availability, Integer userId) {
+        if (role.equals("admin")) {
+            return !availability.equals("archived");
+        } else if (role.equals("member")) {
+            return (privacyLevel.equals("public") ||
+                    privacyLevel.equals("institution") ||
+                    privacyLevel.equals("users"))
+                    && availability.equals("published");
+        } else if (userId > 0) {
+            return (privacyLevel.equals("public") ||
+                    privacyLevel.equals("users"))
+                    && availability.equals("published");
+        } else {
+            return privacyLevel.equals("public") && availability.equals("published");
+        }
+    }
+
     public String getAllProjects(Request req, Response res) {
-        var userId = req.queryParams("userId");
-        var institutionId = req.queryParams("institutionId");
+        var userId = req.queryParamOrDefault("userId", "0");
+        var intUserId = Integer.parseInt(userId.isEmpty() ? "0" : userId);
+        var institutionId = req.queryParamOrDefault("institutionId", "");
         var projects = elementToArray(readJsonFile("project-list.json"));
 
-        if (userId == null || userId.isEmpty()) {
-            // Not logged in
-            var filteredProjects = toStream(projects)
-                    .filter(project -> project.get("archived").getAsBoolean() == false
-                            && project.get("privacyLevel").getAsString().equals("public")
-                            && project.get("availability").getAsString().equals("published"))
-                    .map(project -> {
-                        project.addProperty("editable", false);
-                        project.addProperty("validBoundary", true);
-                        return project;
-                    });
-            if (institutionId == null || institutionId.isEmpty()) {
-                return filteredProjects.collect(intoJsonArray).toString();
-            } else {
-                return filteredProjects
-                        .filter(project -> project.get("institution").getAsString().equals(institutionId))
-                        .collect(intoJsonArray)
-                        .toString();
-            }
-        } else {
-            var institutionRoles = (new JsonUsers()).getInstitutionRoles(Integer.parseInt(userId));
+        var institutionRoles = (new JsonUsers()).getInstitutionRoles(intUserId);
             var filteredProjects = toStream(projects)
                     .filter(project -> project.get("archived").getAsBoolean() == false)
                     .filter(project -> {
                         var role = institutionRoles.getOrDefault(project.get("institution").getAsInt(), "");
                         var privacyLevel = project.get("privacyLevel").getAsString();
                         var availability = project.get("availability").getAsString();
-                        if (role.equals("admin")) {
-                            return (privacyLevel.equals("public") ||
-                                    privacyLevel.equals("private") ||
-                                    privacyLevel.equals("institution"))
-                                    && (availability.equals("unpublished") ||
-                                    availability.equals("published") ||
-                                    availability.equals("closed"));
-                        } else if (role.equals("member")) {
-                            return (privacyLevel.equals("public") ||
-                                    privacyLevel.equals("institution"))
-                                    && availability.equals("published");
-                        } else {
-                            return privacyLevel.equals("public") && availability.equals("published");
-                        }
+                return canSeeProject(role, privacyLevel, availability, intUserId);
                     })
                     .map(project -> {
                         var role = institutionRoles.getOrDefault(project.get("institution").getAsInt(), "");
@@ -122,7 +140,7 @@ public class JsonProjects implements Projects {
                         project.addProperty("validBoundary", true);
                         return project;
                     });
-            if (institutionId == null || institutionId.isEmpty()) {
+        if (institutionId.equals("")) {
                 return filteredProjects.collect(intoJsonArray).toString();
             } else {
                 return filteredProjects
@@ -131,7 +149,6 @@ public class JsonProjects implements Projects {
                         .toString();
             }
         }
-    }
 
     private static JsonObject singleProjectJson(String projectId) {
         var projects = elementToArray(readJsonFile("project-list.json"));
@@ -706,6 +723,23 @@ public class JsonProjects implements Projects {
         return "";
     }
 
+    public String updateProject(Request req, Response res) {
+        final var jsonInputs = parseJson(req.body()).getAsJsonObject();
+        mapJsonFile("project-list.json",
+                project -> {
+                    if (project.get("id").getAsString().equals(req.params(":id"))) {
+                        project.addProperty("name",          getOrEmptyString(jsonInputs, "name").getAsString());
+                        project.addProperty("description",   getOrEmptyString(jsonInputs, "description").getAsString());
+                        project.addProperty("privacyLevel",  getOrEmptyString(jsonInputs, "privacyLevel").getAsString());
+                        project.addProperty("baseMapSource", getOrEmptyString(jsonInputs, "baseMapSource").getAsString());
+                        return project;
+                    } else {
+                        return project;
+                    }
+                });
+        return "";
+    }
+
     private static IntSupplier makeCounter() {
         var counter = new int[]{0}; // Have to use an array to move the value onto the heap
         return () -> { counter[0] += 1; return counter[0]; };
@@ -894,7 +928,9 @@ public class JsonProjects implements Projects {
 
     public static JsonObject newProjectObject(JsonObject newProjectData, JsonObject fileData, Request req) {
         final var newProjectId = newProjectData.get("id").getAsString();
-        if (getOrZero(newProjectData, "projectTemplate").getAsInt() > 0) {
+        if (getOrZero(newProjectData, "projectTemplate").getAsInt() > 0
+            && newProjectData.get("useTemplatePlots").getAsBoolean()) {
+
                     var templateID = newProjectData.get("projectTemplate").getAsString();
                     var templateProject = singleProjectJson(templateID);
                     // Strip plots and samples of user data
@@ -1117,6 +1153,23 @@ public class JsonProjects implements Projects {
         var right = paddedBounds[2];
         var top = paddedBounds[3];
 
+        // Check prospective project size
+        var totalPlots =
+            plotDistribution.equals("random") ? numPlots
+            : plotDistribution.equals("gridded") ? countGriddedPoints(left, bottom, right, top, plotSpacing)
+            : plotDistribution.equals("csv") ? csvPlotPoints.size()
+            : shpPlotCenters.size();
+
+        if (totalPlots == 0) {throw new RuntimeException("Plot file is empty.");}
+
+        var computedSamplesPerPlot =
+            sampleDistribution.equals("random") ? samplesPerPlot
+            : sampleDistribution.equals("gridded") ? countGriddedSampleSet(plotSize, sampleResolution)
+            : sampleDistribution.equals("csv") ? (csvSamplePointsFinal.size() / totalPlots)
+            : (shpSampleCentersFinal.size() / totalPlots);
+
+        checkPlotLimits(totalPlots, 5000, computedSamplesPerPlot, 200, 50000);
+
         // Generate the plot objects and their associated sample points
         var newPlotCenters =
             plotDistribution.equals("random") ? createRandomPointsInBounds(left, bottom, right, top, numPlots)
@@ -1199,11 +1252,20 @@ public class JsonProjects implements Projects {
                                 return newSample;
                             })
                         .collect(intoJsonArray);
-
                     newPlot.add("samples", newSamples);
                     return newPlot;
                 })
             .collect(intoJsonArray);
+
+        var noSamples = filterJsonArray(newPlots, p -> p.get("samples").getAsJsonArray().size() == 0);
+        var topTen = toStream(noSamples).map(p -> p.get("plotId")).limit(10).collect(intoJsonArray).toString();
+
+        if (noSamples.size() > 0) {
+            throw new RuntimeException("The uploaded plot and sample files do not have correctly overlapping data. "
+                                       + noSamples.size()
+                                       + " plots have no samples. The first 10 are: "
+                                       + topTen);
+        }
 
         // Write the plot data to a new plot-data-<id>.json file
         writeJsonFile("plot-data-" + newProject.get("id").getAsString() + ".json", newPlots);
@@ -1246,6 +1308,7 @@ public class JsonProjects implements Projects {
             newProject.add("sampleValues", jsonInputs.get("sampleValues").getAsJsonArray());
             newProject.add("surveyRules", jsonInputs.get("surveyRules").getAsJsonArray());
             newProject.addProperty("useTemplatePlots", jsonInputs.get("useTemplatePlots").getAsBoolean());
+            newProject.addProperty("useTemplateWidgets", jsonInputs.get("useTemplateWidgets").getAsBoolean());
 
             // Add constant values
             newProject.addProperty("availability", "unpublished");
@@ -1266,7 +1329,8 @@ public class JsonProjects implements Projects {
             var newProjectId = getNextId(projects);
             newProject.addProperty("id", newProjectId);
 
-            if (getOrZero(jsonInputs, "projectTemplate").getAsInt() > 0) {
+            if (getOrZero(jsonInputs, "projectTemplate").getAsInt() > 0
+                && newProject.get("useTemplateWidgets").getAsBoolean()) {
                 var currProjId = getOrZero(jsonInputs, "projectTemplate").getAsString();
                 var newDashboardId = UUID.randomUUID().toString();
                 var projectFile = elementToArray(readJsonFile("proj.json"));

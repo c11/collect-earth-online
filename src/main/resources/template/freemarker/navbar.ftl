@@ -19,26 +19,17 @@
                 </#if>
             </#list>
             <#if userid != "">
-                <#if navlink == "Account">
+                <#list ["Account", "Timesync"] as url>
+                    <#if navlink == "url">
                         <li class="nav-item active">
-                        <a class="nav-link" href="${root}/account/${userid}">Account</a>
+                            <a class="nav-link" href="${root}/${url?lower_case}/${userid}">${url}</a>
                         </li>
                     <#else>
                         <li class="nav-item">
-                        <a class="nav-link" href="${root}/account/${userid}">Account</a>
-                    </li>
-                </#if>
-            </#if>
-            <#if userid != "">
-                <#if navlink == "TimeSync">
-                    <li class="nav-item active">
-                        <a class="nav-link" href="${root}/timesync/${userid}">TimeSync</a>
-                    </li>
-                <#else>
-                    <li class="nav-item">
-                        <a class="nav-link" href="${root}/timesync/${userid}">TimeSync</a>
+                            <a class="nav-link" href="${root}/${url?lower_case}/${userid}">${url}</a>
                         </li>
                     </#if>
+                </#list>
             </#if>
         </ul>
         <ul id="login-info" class="navbar-nav mr-0">

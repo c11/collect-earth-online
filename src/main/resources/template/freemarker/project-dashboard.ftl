@@ -14,10 +14,12 @@
     <#assign project_stats_visibility = "visible">
     <#assign project_template_visibility = "d-none">
 </#if>
-<div id="project_dashboard" class="row justify-content-center"></div>
-<script type="text/javascript" src="${root}/js/vendors~account~collection~create_institution~create_project~geodashreact~home~project_dashboard~rev~1b583733.bundle.js"></script>
-<script type="text/javascript" src="${root}/js/collection~create_project~geodashreact~home~project_dashboard~review_project.bundle.js"></script>
-<script type="text/javascript" src="${root}/js/project_dashboard.bundle.js"></script>
+<div id="project-dashboard" class="row justify-content-center"></div>
+
+<!-- Auto Inserted Bundles -->
+
+<!-- End Auto Inserted Bundles -->
+
 <script type="text/javascript">
     window.onload = function () {
         project_dashboard.renderProjectDashboardPage({

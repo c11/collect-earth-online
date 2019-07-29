@@ -7,19 +7,19 @@
 	    <h1>Collect Earth Online User Manual</h1>
 	    <div class="btn-group-vertical btn-block mb-4">
 			<a class="btn btn-outline-lightgreen btn-block" href="${root}/downloads/CEO_Manual.pdf" role="button">
-                <i class="fa fa-download"></i> PDF Version
+                &#x1F4BE; PDF Version
             </a>
 	        <a class="btn btn-outline-lightgreen btn-block" href="${root}/downloads/CEO_Manual.docx" role="button">
-                <i class="fa fa-download"></i> DOCX Version
+                &#x1F4BE; DOCX Version
             </a>
 	    </div>
 	    <h1>Code and Bug Support</h1>
 	    <div class="btn-group-vertical btn-block mb-4">
 	        <a class="btn btn-outline-lightgreen btn-block" href="https://github.com/openforis/collect-earth-online/issues">
-                <i class="fa fa-external-link-square-alt"></i> Github Issue Tracker
+                &#x1F517; Github Issue Tracker
             </a>
 	        <a class="btn btn-outline-lightgreen btn-block" href="http://www.openforis.org">
-                <i class="fa fa-external-link-square-alt"></i> OpenForis Website
+                &#x1F517; OpenForis Website
             </a>
 	    </div>
 	    <h1>Collect Earth Online Tutorials</h1>
@@ -38,7 +38,7 @@
         </p>
         <h1>Geo-Dash Help Center</h1>
         <p class="text-center col-lg-10 offset-lg-1 mb-4">
-            Please access the <a href="${root}/geo-dash/geodashhelp" target="_blank">Geo-Dash Help Center</a> for details on configuring the Geo-Dash for your project.
+            Please access the <a href="${root}/geo-dash/geo-dash-help" target="_blank">Geo-Dash Help Center</a> for details on configuring the Geo-Dash for your project.
         </p>
 	</div>
 </section>

@@ -6,6 +6,7 @@ class CreateInstitution extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            institutions: [],
             newInstitutionDetails: {
                 name: "",
                 logo: "",
@@ -16,32 +17,62 @@ class CreateInstitution extends React.Component {
         };
     }
 
-    createInstitution = () => {
-        fetch(this.props.documentRoot + "/create-institution",
-              {
-                  method: "POST",
-                  body: JSON.stringify({
-                      userId: this.props.userId,
-                      name: this.state.newInstitutionDetails.name,
-                      logo: this.state.newInstitutionDetails.logo,
-                      base64Image: this.state.newInstitutionDetails.base64Image,
-                      url: this.state.newInstitutionDetails.url,
-                      description: this.state.newInstitutionDetails.description,
-                  }),
-              })
-            .then(response => response.ok ? response.json() : Promise.reject(response))
-            .then(data => window.location = this.props.documentRoot + "/review-institution/" + data.id)
-            .catch(response => {
-                console.log(response);
-                alert("Error creating institution. See console for details.");
-            });
+    componentDidMount() {
+        this.getInstitutions();
     }
 
-    setInstitutionDetails = (key, newValue) => this.setState({
-        newInstitutionDetails: {
-            ...this.state.newInstitutionDetails, [key]: newValue,
-        },
-    });
+    getInstitutions = () => fetch(this.props.documentRoot + "/get-all-institutions")
+        .then(response => response.ok ? response.json() : Promise.reject(response))
+        .then(data => this.setState({ institutions: data }))
+        .catch(response => {
+            console.log(response);
+            alert("Error downloading institution list. See console for details.");
+        });
+
+    createInstitution = () => {
+        const duplicateInst = this.state.institutions.find(inst => inst.name === this.state.newInstitutionDetails.name);
+        if (duplicateInst) {
+            alert("An institution with this name already exists. "
+                + "Either select a different name or change the name of the duplicate institution here: "
+                + window.location.origin + "/review-institution/" + duplicateInst.id);
+        } else {
+            fetch(this.props.documentRoot + "/create-institution",
+                  {
+                      method: "POST",
+                      body: JSON.stringify({
+                          userId: this.props.userId,
+                          name: this.state.newInstitutionDetails.name,
+                          logo: this.state.newInstitutionDetails.logo,
+                          base64Image: this.state.newInstitutionDetails.base64Image,
+                          url: this.state.newInstitutionDetails.url,
+                          description: this.state.newInstitutionDetails.description,
+                      }),
+                  }
+            )
+                .then(response => response.ok ? response.text() : Promise.reject(response.text()))
+                .then(data => {
+                    const isInteger = n => !isNaN(parseInt(n)) && isFinite(n) && !n.includes(".");
+                    if (isInteger(data)) {
+                        window.location = this.props.documentRoot + "/review-institution/" + data;
+                        return Promise.resolve();
+                    } else {
+                        return Promise.reject(data);
+                    }
+                })
+                .catch(response => {
+                    console.log(response);
+                    alert("Error creating institution. See console for details.");
+                });
+        }
+    };
+
+    setInstitutionDetails = (key, newValue) => {
+        this.setState({
+            newInstitutionDetails: {
+                ...this.state.newInstitutionDetails, [key]: newValue,
+            },
+        });
+    };
 
     renderButtonGroup = () =>
         <input
@@ -56,7 +87,7 @@ class CreateInstitution extends React.Component {
     render() {
         return (
             <InstitutionEditor
-                instTitle="Create New Institution"
+                title="Create New Institution"
                 name={this.state.newInstitutionDetails.name}
                 logo={this.state.newInstitutionDetails.logo}
                 url={this.state.newInstitutionDetails.url}

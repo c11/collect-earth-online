@@ -78,33 +78,33 @@ mercator.getViewRadius = function (mapConfig) {
 
 // [Pure] Returns a new ol.source.* object or null if the sourceConfig
 // is invalid.
-mercator.createSource = function (sourceConfig) {
-    if (sourceConfig.type == "DigitalGlobe") {
+mercator.createSource = function (sourceConfig, imageryId, documentRoot) {
+    if (["DigitalGlobe", "EarthWatch"].includes(sourceConfig.type)) {
         return new ol.source.XYZ({
-            url: "https://api.tiles.mapbox.com/v4/" + sourceConfig.imageryId
-                                  + "/{z}/{x}/{y}.png?access_token=" + sourceConfig.accessToken,
+            url: documentRoot + "/get-tile?imageryId=" + imageryId + "&z={z}&x={x}&y={-y}",
             attribution: "© DigitalGlobe, Inc",
         });
-    } else if (sourceConfig.type == "Planet") {
+    } else if (sourceConfig.type === "Planet") {
         return new ol.source.XYZ({
-            url: "https://tiles{0-3}.planet.com/basemaps/v1/planet-tiles/global_monthly_"
-                                  + sourceConfig.year + "_" + sourceConfig.month + "_mosaic/gmap/{z}/{x}/{y}.png?api_key="
-                                  + sourceConfig.accessToken,
+            url: documentRoot
+                 + "/get-tile?imageryId=" + imageryId
+                 + "&z={z}&x={x}&y={y}&tile={0-3}&month=" + sourceConfig.month
+                 + "&year=" + sourceConfig.year,
             attribution: "© Planet Labs, Inc",
         });
-    } else if (sourceConfig.type == "BingMaps") {
+    } else if (sourceConfig.type === "BingMaps") {
         return new ol.source.BingMaps({
             imagerySet: sourceConfig.imageryId,
             key: sourceConfig.accessToken,
             maxZoom: 19,
         });
-    } else if (sourceConfig.type == "GeoServer") {
+    } else if (sourceConfig.type === "GeoServer") {
         return new ol.source.TileWMS({
             serverType: "geoserver",
-            url: sourceConfig.geoserverUrl,
-            params: sourceConfig.geoserverParams,
+            url: documentRoot + "/get-tile",
+            params: { LAYERS: "none", imageryId: imageryId },
         });
-    } else if (sourceConfig.type == "GeeGateway") {
+    } else if (sourceConfig.type === "GeeGateway") {
         //get variables and make ajax call to get mapid and token
         //then add xyz layer
         //const fts = {'LANDSAT5': 'Landsat5Filtered', 'LANDSAT7': 'Landsat7Filtered', 'LANDSAT8':'Landsat8Filtered', 'Sentinel2': 'FilteredSentinel'};
@@ -183,9 +183,9 @@ mercator.createSource = function (sourceConfig) {
 
 // [Pure] Returns a new ol.layer.Tile object or null if the
 // layerConfig is invalid.
-mercator.createLayer = function (layerConfig) {
+mercator.createLayer = function (layerConfig, documentRoot) {
     layerConfig.sourceConfig.create = true;
-    const source = mercator.createSource(layerConfig.sourceConfig);
+    const source = mercator.createSource(layerConfig.sourceConfig, layerConfig.id, documentRoot);
     if (source == null) {
         return null;
     } else if (layerConfig.extent != null) {
@@ -233,7 +233,7 @@ mercator.verifyLayerConfig = function (layerConfig) {
     return layerKeys.includes("title")
         && layerKeys.includes("extent")
         && layerKeys.includes("sourceConfig")
-        && mercator.createSource(layerConfig.sourceConfig) != null;
+        && mercator.createSource(layerConfig.sourceConfig, layerConfig.id, "") != null;
 };
 
 // [Pure] Predicate
@@ -287,14 +287,14 @@ mercator.verifyMapInputs = function (divName, centerCoords, zoomLevel, layerConf
 //                                                     geoserverParams: {VERSION: "1.1.1",
 //                                                                       LAYERS: "DigitalGlobe:Imagery",
 //                                                                       CONNECTID: "your-digital-globe-connect-id-here"}}}]);
-mercator.createMap = function (divName, centerCoords, zoomLevel, layerConfigs) {
+mercator.createMap = function (divName, centerCoords, zoomLevel, layerConfigs, documentRoot) {
     const errorMsg = mercator.verifyMapInputs(divName, centerCoords, zoomLevel, layerConfigs);
     if (errorMsg) {
         console.error(errorMsg);
         return null;
     } else {
         // Create each of the layers that will be shown in the map from layerConfigs
-        const layers = layerConfigs.map(mercator.createLayer);
+        const layers = layerConfigs.map(l => mercator.createLayer(l, documentRoot));
 
         // Add a scale line to the default map controls
         const controls = ol.control.defaults().extend([new ol.control.ScaleLine()]);
@@ -323,10 +323,11 @@ mercator.createMap = function (divName, centerCoords, zoomLevel, layerConfigs) {
                 zoomLevel: zoomLevel,
                 layerConfigs: layerConfigs,
             },
-            layers: map.getLayers(),
             controls: controls,
-            view: view,
+            documentRoot: documentRoot,
+            layers: map.getLayers(),
             map: map,
+            view: view,
         };
     }
 };
@@ -362,7 +363,8 @@ mercator.resetMap = function (mapConfig) {
     return mercator.createMap(mapConfig.init.divName,
                               mapConfig.init.centerCoords,
                               mapConfig.init.zoomLevel,
-                              mapConfig.init.layerConfigs);
+                              mapConfig.init.layerConfigs,
+                              mapConfig.documentRoot);
 };
 
 /*****************************************************************************
@@ -414,7 +416,7 @@ mercator.updateLayerSource = function (mapConfig, layerTitle, transformer, calle
     const layer = mercator.getLayerByTitle(mapConfig, layerTitle);
     const layerConfig = mercator.getLayerConfigByTitle(mapConfig, layerTitle);
     if (layer && layerConfig) {
-        layer.setSource(mercator.createSource(transformer.call(caller, layerConfig.sourceConfig)));
+        layer.setSource(mercator.createSource(transformer.call(caller, layerConfig.sourceConfig), layerConfig.id, mapConfig.documentRoot));
     }
 };
 
@@ -538,7 +540,7 @@ mercator.getPolygonStyle = function (fillColor, borderColor, borderWidth) {
 
 const ceoMapStyles = {
     icon:          mercator.getIconStyle("favicon.ico"),
-    ceoIcon:       mercator.getIconStyle("ceoicon.png"),
+    ceoIcon:       mercator.getIconStyle("img/ceoicon.png"),
     redPoint:      mercator.getCircleStyle(5, null, "#8b2323", 2),
     bluePoint:     mercator.getCircleStyle(5, null, "#23238b", 2),
     yellowPoint:   mercator.getCircleStyle(5, null, "yellow", 2),
@@ -928,32 +930,6 @@ mercator.isCluster = function (feature) {
     return feature && feature.get("features") && feature.get("features").length > 0;
 };
 
-// [Pure] Returns a string of HTML representing several table rows
-// that describe the passed in project.
-mercator.makeRows = function () {
-    const rowStart = "<tr class=\"d-flex\">";
-    const rowEnd = "</tr>";
-    const leftColStart = "<td class=\"small col-6 px-0 my-auto\">";
-    const rightColStart = "<td class=\"small col-6 pr-0\">";
-    const colEnd = "</td>";
-    const linkStart = "<a href=\"" + "{documentRoot}" + "/collection/" + "{project.get(\"projectId\")}" + "\" "
-                  + "class=\"btn btn-sm btn-block btn-outline-lightgreen\" "
-                  + "style=\"white-space:nowrap; overflow:hidden; text-overflow:ellipsis\">";
-    const linkEnd = "</a>";
-    return rowStart
-        + leftColStart + "<h3 class=\"my-auto\">Name</h3>" + colEnd
-        + rightColStart + linkStart + "{project.get(\"name\")}" + linkEnd + colEnd
-        + rowEnd
-        + rowStart
-        + leftColStart + "Description" + colEnd
-        + rightColStart + "{(project.get(\"description\")} == \"\" ? \"N/A\" : project.get(\"description\"))}" + colEnd
-        + rowEnd
-        + rowStart
-        + leftColStart + "Number of plots" + colEnd
-        + rightColStart + "{project.get(\"numPlots\")}" + colEnd
-        + rowEnd;
-};
-
 // [Pure] Returns the minimum extent that bounds all of the
 // subfeatures in the passed in clusterFeature.
 mercator.getClusterExtent = function (clusterFeature) {
@@ -963,41 +939,6 @@ mercator.getClusterExtent = function (clusterFeature) {
         }
     );
     return (new ol.geom.LineString(clusterPoints)).getExtent();
-};
-
-// [Pure] Returns a string of HTML to display in a popup box on the map.
-mercator.getPopupContent = function (mapConfig, documentRoot, feature) {
-    const title = "<div class=\"cTitle\"><h1>"
-              + (mercator.isCluster(feature) ? "Cluster info" : "Project info")
-              + "</h1></div>";
-    const contentStart = "<div class=\"cContent\">";
-    const tableStart = "<table class=\"table table-sm\"><tbody>";
-    const tableRows = mercator.isCluster(feature)
-        ? feature.get("features").map(mercator.makeRows.bind(null, documentRoot)).join("\n")
-        : mercator.makeRows(documentRoot, feature);
-    const tableEnd = "</tbody></table>";
-    const contentEnd = "</div>";
-
-    if (mercator.isCluster(feature) && feature.get("features").length > 1) {
-        const zoomLink = "<button onclick=\"mercator.zoomMapToExtent(mapConfig, "
-            + mercator.getClusterExtent(feature) + ")\" "
-            + "class=\"mt-0 mb-0 btn btn-sm btn-block btn-outline-yellow\" style=\"cursor:pointer; min-width:350px;\">"
-            + "<i class=\"fa fa-search-plus\"></i> Zoom to cluster</button>";
-        return title + contentStart + tableStart + tableRows + tableEnd + zoomLink + contentEnd;
-    } else {
-        return title + contentStart + tableStart + tableRows + tableEnd + contentEnd;
-    }
-};
-
-// [Side Effects] Updates the overlay element's innerHTML with fields
-// containing the feature's name, description, and numPlots fields as
-// well as a link to its data collection page and then displays the
-// overlay on the map at the feature's coordinates.
-mercator.showProjectPopup = function (mapConfig, overlay, documentRoot, feature) {
-    overlay.getElement().innerHTML = mercator.getPopupContent(mapConfig, documentRoot, feature);
-    overlay.setPosition(mercator.isCluster(feature)
-                        ? feature.get("features")[0].getGeometry().getCoordinates()
-                        : feature.getGeometry().getCoordinates());
 };
 
 // [Pure] Returns a new vector source containing points for each of
@@ -1025,51 +966,6 @@ mercator.projectsToVectorSource = function (projects) {
         }
     );
     return new ol.source.Vector({ features: features });
-};
-
-// [Side Effects] Adds a new vector layer called "projectMarkers" to
-// mapConfig's map object containing icons at each of the project's
-// AOI centers. Also adds a dynamic overlay popup to the map which
-// shows a brief project description whenever a project icon is
-// clicked. If clusterDistance is not null, the new vector source will
-// cluster the projects. Finally, zooms the map view to the new
-// layer's extent.
-mercator.addProjectMarkersAndZoom = function (mapConfig, projects, documentRoot, clusterDistance) {
-    const projectSource = mercator.projectsToVectorSource(projects);
-
-    if (clusterDistance == null) {
-        mercator.addVectorLayer(mapConfig,
-                                "projectMarkers",
-                                projectSource,
-                                ceoMapStyles.ceoIcon);
-    } else {
-        const clusterSource = new ol.source.Cluster({
-            source:   projectSource,
-            distance: clusterDistance,
-        });
-        mercator.addVectorLayer(mapConfig,
-                                "projectMarkers",
-                                clusterSource,
-                                function (feature) {
-                                    const numProjects = feature.get("features").length;
-                                    return mercator.getCircleStyle(10, "#3399cc", "#ffffff", 1, numProjects, "#ffffff");
-                                });
-    }
-
-    mercator.addOverlay(mapConfig, "projectPopup");
-    //let overlay = mercator.getOverlayByTitle(mapConfig, "projectPopup");
-    // mapConfig.map.on("click",
-    //                  function (event) {
-    //                      if (mapConfig.map.hasFeatureAtPixel(event.pixel)) {
-    //                          mapConfig.map.forEachFeatureAtPixel(event.pixel,
-    //                                                              mercator.showProjectPopup.bind(null, mapConfig, overlay, documentRoot));
-    //                      } else {
-    //                          overlay.setPosition(undefined);
-    //                      }
-    //                  });
-
-    mercator.zoomMapToExtent(mapConfig, projectSource.getExtent());
-    return mapConfig;
 };
 
 // [Side Effects] Adds a new vector layer called "currentPlots" to
@@ -1135,7 +1031,6 @@ mercator.getKMLFromFeatures = function (features) {
 *****************************************************************************/
 //
 // FIXME: Move ceoMapStyles out of Mercator.js
-// FIXME: Move mercator.getPopupContent() out of Mercator.js (it is hard-coded to CEO's home page)
 // FIXME: change calls from remove_plot_layer to mercator.removeLayerByTitle(mapConfig, layerTitle)
 // FIXME: change calls from draw_polygon to:
 //        mercator.removeLayerByTitle(mapConfig, "currentAOI");
@@ -1173,9 +1068,6 @@ mercator.getKMLFromFeatures = function (features) {
 // FIXME: change calls from highlight_sample to mercator.highlightSampleGeometry
 // FIXME: change calls from enable_dragbox_draw to enableDragBoxDraw(mapConfig, displayDragBoxBounds)
 // FIXME: change calls from disable_dragbox_draw to disableDragBoxDraw
-// FIXME: change calls from draw_project_markers to:
-//        mercator.addProjectMarkersAndZoom(mapConfig, projects, documentRoot, clusterDistance);
-//        mercator.zoomMapToLayer(mapConfig, "projectMarkers");
 // FIXME: change references to pID in home.js to projectId
 // FIXME: change calls from draw_project_points to:
 //        mercator.removeLayerByTitle(mapConfig, "currentPlots");

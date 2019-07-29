@@ -410,6 +410,9 @@ public class CollectProjects implements Projects {
         return "";
     }
 
+    // FIXME Stub
+    public String updateProject(Request req, Response res) {return "";}
+
     // NOTE: This function is extremely complicated. We will need to
     // work together to move it to Collect.
     //
@@ -819,5 +822,13 @@ public class CollectProjects implements Projects {
         } else {
             return Integer.parseInt(userIdStr);
         }
+    }
+
+    public Request redirectNoCollect(Request req, Response res) {
+        return req;
+    }
+
+    public Request redirectNoEdit(Request req, Response res) {
+        return req;
     }
 }

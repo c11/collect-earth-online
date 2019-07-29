@@ -1,7 +1,7 @@
 import React, { Fragment } from "react";
 import ReactDOM from "react-dom";
 import { mercator, ceoMapStyles } from "../js/mercator-openlayers.js";
-import { sortAlphabetically } from "./utils/textUtils.js";
+import { sortAlphabetically, UnicodeIcon } from "./utils/textUtils";
 
 class Home extends React.Component {
     constructor(props) {
@@ -70,7 +70,6 @@ class Home extends React.Component {
                             projects={this.state.projects}
                             showSidePanel={this.state.showSidePanel}
                             userId={this.props.userId}
-                            userName={this.props.userName}
                         />
                         <MapPanel
                             documentRoot={this.props.documentRoot}
@@ -78,7 +77,6 @@ class Home extends React.Component {
                             projects={this.state.projects}
                             showSidePanel={this.state.showSidePanel}
                             toggleSidebar={this.toggleSidebar}
-                            userId={this.props.userId}
                         />
                     </div>
                 </div>
@@ -97,25 +95,28 @@ class MapPanel extends React.Component {
         };
     }
 
-    // FIXME: Set this.props.imagery.slice(2,3) back to .slice(0,1) once DG layers are reinstated.
-    // FIXME: Set this.props.imagery[2].title back to .imagery[0].title once DG layers are reinstated.
     componentDidUpdate(prevProps, prevState) {
         if (this.state.mapConfig == null && this.props.imagery.length > 0 && prevProps.imagery.length === 0) {
-            const mapConfig = mercator.createMap("home-map-pane", [0.0, 0.0], 1, this.props.imagery.slice(2, 3));
-            mercator.setVisibleLayer(mapConfig, this.props.imagery[2].title);
+            const homePageLayer = this.props.imagery.find(
+                function (imagery) {
+                    return imagery.title === "DigitalGlobeRecentImagery";
+                }
+            );
+            const mapConfig = mercator.createMap("home-map-pane", [70, 15], 2.1, [homePageLayer], this.props.documentRoot);
+            mercator.setVisibleLayer(mapConfig, homePageLayer.title);
             this.setState({ mapConfig: mapConfig });
         }
         if (this.state.mapConfig && this.props.projects.length > 0
             && (!prevState.mapConfig || prevProps.projects.length === 0)) {
 
-            this.addProjectMarkersAndZoom(this.state.mapConfig,
-                                          this.props.projects,
-                                          this.props.documentRoot,
-                                          40); // clusterDistance = 40, use null to disable clustering
+            this.addProjectMarkers(this.state.mapConfig,
+                                   this.props.projects,
+                                   this.props.documentRoot,
+                                   40); // clusterDistance = 40, use null to disable clustering
         }
     }
 
-    addProjectMarkersAndZoom(mapConfig, projects, documentRoot, clusterDistance) {
+    addProjectMarkers(mapConfig, projects, documentRoot, clusterDistance) {
         const projectSource = mercator.projectsToVectorSource(projects.filter(project => project.boundary));
         if (clusterDistance == null) {
             mercator.addVectorLayer(mapConfig,
@@ -140,7 +141,6 @@ class MapPanel extends React.Component {
                                  overlay.setPosition(undefined);
                              }
                          });
-        mercator.zoomMapToExtent(mapConfig, projectSource.getExtent());
     }
 
     showProjectPopup(overlay, feature) {
@@ -176,10 +176,10 @@ class MapPanel extends React.Component {
                         <div className="empty-div" style={{ height: "50vh" }}/>
                         <div className="my-auto no-gutters text-center">
                             <div className={this.props.showSidePanel ? "" : "d-none"}>
-                                <div className={"fa fa-caret-left"} />
+                                <UnicodeIcon icon="leftCaret"/>
                             </div>
                             <div className={this.props.showSidePanel ? "d-none" : ""}>
-                                <div className={"fa fa-caret-right"} />
+                                <UnicodeIcon icon="rightCaret"/>
                             </div>
                         </div>
                     </div>
@@ -206,7 +206,7 @@ class SideBar extends React.Component {
             filterInstitution: true,
             useFirstLetter: false,
             sortByNumber: true,
-            containsProjects: false,
+            showEmptyInstitutions: false,
             showFilters: false,
         };
     }
@@ -215,7 +215,7 @@ class SideBar extends React.Component {
 
     toggleFilterInstitution = () => this.setState({ filterInstitution: !this.state.filterInstitution });
 
-    toggleContainsProjects = () => this.setState({ containsProjects: !this.state.containsProjects });
+    toggleShowEmptyInstitutions = () => this.setState({ showEmptyInstitutions: !this.state.showEmptyInstitutions });
 
     toggleSortByNumber = () => this.setState({ sortByNumber: !this.state.sortByNumber });
 
@@ -232,19 +232,25 @@ class SideBar extends React.Component {
                                         ? proj.name.toLocaleLowerCase().startsWith(filterTextLower)
                                         : proj.name.toLocaleLowerCase().includes(filterTextLower)));
 
-        const filteredInstitutions = this.props.institutions
-            .filter(inst => !this.state.filterInstitution
-                                    || (this.state.useFirstLetter
+        const filterString = (inst) => this.state.useFirstLetter
                                         ? inst.name.toLocaleLowerCase().startsWith(filterTextLower)
-                                        : inst.name.toLocaleLowerCase().includes(filterTextLower)))
-            .filter(inst => this.state.filterInstitution
-                                    || filteredProjects.some(proj => inst.id === proj.institution))
-            .filter(inst => !(this.state.filterInstitution && this.state.containsProjects)
-                                    || this.props.projects.some(proj => inst.id === proj.institution))
+                                        : inst.name.toLocaleLowerCase().includes(filterTextLower);
+
+        const filterHasProj = (inst) => filteredProjects.some(proj => inst.id === proj.institution)
+                                        || this.state.showEmptyInstitutions
+                                        || inst.admins.includes(this.props.userId)
+                                        || inst.members.includes(this.props.userId);
+
+        const filteredInstitutions = this.props.institutions
+            // Filtering by institution, contains search string and contains projects or user is member
+            .filter(inst => !this.state.filterInstitution || filterString(inst))
+            .filter(inst => !this.state.filterInstitution || filterTextLower.length > 0 || filterHasProj(inst))
+            // Filtering by projects, and has projects to show
+            .filter(inst => this.state.filterInstitution || filteredProjects.some(proj => inst.id === proj.institution))
             .sort((a, b) => this.state.sortByNumber
-                                    ? this.props.projects.filter(proj => b.id === proj.institution).length
-                                        - this.props.projects.filter(proj => a.id === proj.institution).length
-                                    : sortAlphabetically(a.name, b.name));
+                                ? this.props.projects.filter(proj => b.id === proj.institution).length
+                                    - this.props.projects.filter(proj => a.id === proj.institution).length
+                                : sortAlphabetically(a.name, b.name));
 
 
         return this.props.showSidePanel
@@ -252,7 +258,7 @@ class SideBar extends React.Component {
                 <div className="bg-darkgreen">
                     <h1 className="tree_label" id="panelTitle">Institutions</h1>
                 </div>
-                {this.props.userName &&
+                {this.props.userId > 0 &&
                     <CreateInstitutionButton documentRoot={this.props.documentRoot}/>
                 }
                 <InstitutionFilter
@@ -266,8 +272,8 @@ class SideBar extends React.Component {
                     toggleFilterInstitution={this.toggleFilterInstitution}
                     sortByNumber={this.state.sortByNumber}
                     toggleSortByNumber={this.toggleSortByNumber}
-                    containsProjects={this.state.containsProjects}
-                    toggleContainsProjects={this.toggleContainsProjects}
+                    showEmptyInstitutions={this.state.showEmptyInstitutions}
+                    toggleShowEmptyInstitutions={this.toggleShowEmptyInstitutions}
                     showFilters={this.state.showFilters}
                     toggleShowFilters={this.toggleShowFilters}
                 />
@@ -287,7 +293,7 @@ class SideBar extends React.Component {
                                 />
                             )}
                         </ul>
-                        : <h3 className="p-3">No Institutions Found...</h3>
+                        : <h3 className="p-3">{this.state.filterInstitution ? "No Institutions Found..." : "No Projects Found..."}</h3>
                     : <h3 className="p-3">Loading data...</h3> }
             </div>
             ) : (
@@ -387,10 +393,10 @@ function InstitutionFilter(props) {
                             <input
                                 className="form-check-input"
                                 type="checkbox"
-                                checked={props.containsProjects}
-                                onChange={props.toggleContainsProjects}
+                                checked={props.showEmptyInstitutions}
+                                onChange={props.toggleShowEmptyInstitutions}
                             />
-                            Contains projects
+                            Show Empty Institutions
                         </div>
                     </div>
                 </Fragment>
@@ -407,7 +413,7 @@ function CreateInstitutionButton(props) {
                 style={{ display:"block" }}
                 href={props.documentRoot + "/create-institution"}
             >
-                <span className="fa fa-file" /> Create New Institution
+                <UnicodeIcon icon="add" backgroundColor="#31BAB0"/> Create New Institution
             </a>
         </div>
     );
@@ -446,7 +452,9 @@ class Institution extends React.Component {
                                 className="institution_info btn btn-sm btn-outline-lightgreen"
                                 href={props.documentRoot + "/review-institution/" + props.id}
                             >
-                                <span className="fa fa-info" style={{ color: "white" }} />
+                                <span style={{ color: "white", fontSize: "1rem" }}>
+                                    <UnicodeIcon icon="info"/>
+                                </span>
                             </a>
                         </div>
                     </div>
@@ -486,9 +494,14 @@ function Project(props) {
                 <div className="col-lg-10 pr-lg-1">
                     <a
                         className="view-project btn btn-sm btn-outline-lightgreen btn-block"
+                        style={{
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                        }}
                         href={props.documentRoot + "/collection/" + props.id}
                     >
-                        {props.name}
+                        {props.name || "*un-named*"}
                     </a>
                 </div>
                 <div className="col-lg-2 pl-lg-0">
@@ -496,7 +509,7 @@ function Project(props) {
                         className="edit-project btn btn-sm btn-outline-yellow btn-block"
                         href={props.documentRoot + "/review-project/" + props.id}
                     >
-                        <span className="fa fa-edit" />
+                        <UnicodeIcon icon="edit"/>
                     </a>
                 </div>
             </div>
@@ -574,7 +587,7 @@ class ProjectPopup extends React.Component {
                         display: this.props.features.length > 1 ? "block" : "none",
                     }}
                 >
-                    <span className="fa fa-search-plus"/>Zoom to cluster
+                    <UnicodeIcon icon="magnify"/> Zoom to cluster
                 </button>
             </div>
         );
@@ -583,7 +596,10 @@ class ProjectPopup extends React.Component {
 
 export function renderHomePage(args) {
     ReactDOM.render(
-        <Home documentRoot={args.documentRoot} userId={args.userId} userName={args.userName}/>,
+        <Home
+            documentRoot={args.documentRoot}
+            userId={args.userId === "" ? -1 : parseInt(args.userId)}
+        />,
         document.getElementById("home")
     );
 }

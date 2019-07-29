@@ -15,6 +15,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
@@ -306,6 +307,14 @@ public class ProjectUtils {
                 .toArray(Double[][]::new);
     }
 
+    public static Integer countGriddedPoints(double left, double bottom, double right, double top, double spacing) {
+        var xRange = right - left;
+        var yRange = top - bottom;
+        var xSteps = (int) Math.floor(xRange / spacing) + 1;
+        var ySteps = (int) Math.floor(yRange / spacing) + 1;
+        return xSteps * ySteps;
+    }
+
     // NOTE: Inputs are in Web Mercator and outputs are in WGS84 lat/lon
     public static Double[][] createGriddedPointsInBounds(double left, double bottom, double right, double top, double spacing) {
         var xRange = right - left;
@@ -348,6 +357,11 @@ public class ProjectUtils {
 
     private static double squareDistance(double x1, double y1, double x2, double y2) {
         return Math.pow(x2 - x1, 2.0) + Math.pow(y2 - y1, 2.0);
+    }
+
+    public static Integer countGriddedSampleSet(double plotSize, double sampleResolution) {
+        var steps = (int) Math.floor(plotSize / sampleResolution) + 1;
+        return steps * steps;
     }
 
     public static Double[][] createGriddedSampleSet(Double[] plotCenter, String plotShape, double plotSize, double sampleResolution) {
@@ -453,8 +467,8 @@ public class ProjectUtils {
         deleteShapeFileDirectory("project-" + projectId + "-plots");
         deleteShapeFileDirectory("project-" + projectId + "-samples");
     }
-        
-    // Some older data contains a useless string fromat for collection time. 
+
+    // Some older data contains a useless string format for collection time.
     public static Long collectTimeIgnoreString (JsonObject plot){
         try {
             return getOrZero(plot, "collectionTime").getAsLong();
@@ -462,5 +476,30 @@ public class ProjectUtils {
             return 0L;
         }
     }
-    
+
+    private static String numFormat(Integer num) {return NumberFormat.getInstance().format(num);}
+
+    public static void checkPlotLimits(Integer plots, Integer plotLimit, Integer perPlot, Integer perPlotLimit, Integer sampleLimit) {
+        if (plots > plotLimit) {
+            throw new RuntimeException("This action will create "
+                                       + numFormat(plots)
+                                       + " plots. The maximum allowed for the selected plot distribution is "
+                                       + numFormat(plotLimit) + ".");
+        }
+
+        if (perPlot > perPlotLimit) {
+            throw new RuntimeException("This action will create "
+                                       + numFormat(perPlot)
+                                       + " samples per plot. The maximum allowed for the selected sample distribution is "
+                                       + numFormat(perPlotLimit) + ".");
+        }
+
+        if (plots * perPlot > sampleLimit) {
+            throw new RuntimeException("This action will create "
+                                       + numFormat(plots * perPlot)
+                                       + " total samples. The maximum allowed for the selected distribution types is "
+                                       + numFormat(sampleLimit) + ".");
+        }
+    }
+
 }

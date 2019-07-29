@@ -6,11 +6,13 @@ import static spark.Spark.after;
 import static spark.Spark.before;
 import static spark.Spark.exception;
 import static spark.Spark.get;
+import static spark.Spark.halt;
 import static spark.Spark.notFound;
 import static spark.Spark.port;
 import static spark.Spark.post;
 import static spark.Spark.secure;
 import static spark.Spark.staticFileLocation;
+import static spark.Spark.staticFiles;
 
 import freemarker.template.Configuration;
 import freemarker.template.TemplateExceptionHandler;
@@ -78,12 +80,27 @@ public class Server implements SparkApplication {
 
         // Serve static files from src/main/resources/public/
         staticFileLocation("/public");
+        staticFiles.expireTime(6000);
         CorsFilter.apply();
 
         // Allow token-based authentication if users are not logged in and we are using the COLLECT database
         if (databaseType.equals("COLLECT")) {
             before("/*", new CeoAuthFilter());
         }
+
+        // Take query param for flash message and add to session attributes
+        before((request, response) -> {
+            var flashMessage = request.queryParams("flash_message");
+            request.session().attribute("flash_message", flashMessage != null ? flashMessage : "");
+        });
+
+        // Block cross traffic for proxy route
+        before("/get-tile", (request, response) -> {
+            // "referer" is spelled wrong, but is the correct name for this header.
+            if (request.headers("referer") == null || !request.headers("referer").contains(request.host())) {
+                halt(403, "Forbidden!");
+            }
+        });
 
         // GZIP all responses to improve download speeds
         after((request, response) -> { response.header("Content-Encoding", "gzip"); });
@@ -92,23 +109,23 @@ public class Server implements SparkApplication {
         get("/",                                      Views.home(freemarker));
         get("/about",                                 Views.about(freemarker));
         get("/account/:id",                           Views.account(freemarker));
-        get("/card-test",                             Views.cardTest(freemarker));
         get("/create-institution",                    Views.createInstitution(freemarker));
-        get("/create-project",                        Views.createProject(freemarker));
-        get("/collection/:id",                        Views.collection(freemarker));
-        get("/geo-dash",                              Views.geodash(freemarker));
-        get("/geo-dash/geodashhelp",                  Views.geodashhelp(freemarker));
+        get("/create-project",                        (req, res) -> Views.createProject(freemarker).handle(institutions.redirectNonAdmin(req, res), res));
+        get("/collection/:id",                        (req, res) -> Views.collection(freemarker).handle(projects.redirectNoCollect(req, res), res));
+        get("/geo-dash",                              Views.geoDash(freemarker));
+        get("/geo-dash/geo-dash-help",                Views.geoDashHelp(freemarker));
         get("/home",                                  Views.home(freemarker));
         get("/login",                                 Views.login(freemarker));
         get("/password",                              Views.password(freemarker));
         get("/password-reset",                        Views.passwordReset(freemarker));
-        get("/project-dashboard/:id",                 Views.projectDashboard(freemarker));
+        get("/project-dashboard/:id",                 (req, res) -> Views.projectDashboard(freemarker).handle(projects.redirectNoEdit(req, res), res));
+        get("/institution-dashboard/:id",             (req, res) -> Views.institutionDashboard(freemarker).handle(institutions.redirectNonAdmin(req, res), res));
         get("/register",                              Views.register(freemarker));
         get("/review-institution/:id",                Views.reviewInstitution(freemarker, databaseType.equals("COLLECT") ? "remote" : "local"));
-        get("/review-project/:id",                    Views.reviewProject(freemarker));
+        get("/review-project/:id",                    (req, res) -> Views.reviewProject(freemarker).handle(projects.redirectNoEdit(req, res), res));
         get("/support",                               Views.support(freemarker));
-        get("/test-layout-editor",                    Views.testWidgetLayout(freemarker));
         get("/widget-layout-editor",                  Views.editWidgetLayout(freemarker));
+        get("/get-tile",                              (req, res) -> Proxy.proxyImagery(req, res, imagery));
         get("/timesync/:id",                          Views.timesync(freemarker));
 //        get("/timesync-dash",                         Views.timeSyncDash(freemarker));
 
@@ -130,6 +147,7 @@ public class Server implements SparkApplication {
         post("/close-project/:id",                    projects::closeProject);
         post("/create-project",                       projects::createProject);
         post("/publish-project/:id",                  projects::publishProject);
+        post("/update-project/:id",                   projects::updateProject);
 
         // Routing Table: Plots (projects)
         get("/get-next-plot",                         plots::getNextPlot);

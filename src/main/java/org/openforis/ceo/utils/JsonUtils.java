@@ -40,7 +40,7 @@ public class JsonUtils {
     public static JsonElement parseJson(String jsonString) {
         return (new JsonParser()).parse(jsonString == null || jsonString.equals("null") ? "[]" : jsonString);
     }
-    
+
     public static String toJson(Object obj) {
     	return (new Gson()).toJson(obj);
     }
@@ -204,7 +204,7 @@ public class JsonUtils {
     		throw new IllegalArgumentException("Unsupported type: " + type);
     	}
     }
-    
+
     public static String getDateAsString(JsonObject obj, String property) {
     	var el = findElement(obj, property);
     	if (el.isJsonNull()) {

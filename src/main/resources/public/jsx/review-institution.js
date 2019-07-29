@@ -2,7 +2,7 @@ import React, { Fragment } from "react";
 import ReactDOM from "react-dom";
 
 import InstitutionEditor from "./components/InstitutionEditor";
-import { sortAlphabetically, capitalizeFirst } from "./utils/textUtils.js";
+import { sortAlphabetically, capitalizeFirst, UnicodeIcon } from "./utils/textUtils";
 
 class ReviewInstitution extends React.Component {
     constructor(props) {
@@ -46,7 +46,7 @@ class ReviewInstitution extends React.Component {
                     documentRoot={this.props.documentRoot}
                     institutionId={this.props.institutionId}
                     isAdmin={this.state.isAdmin}
-                    of_users_api_url={this.props.of_users_api_url}
+                    ofUsersApiUrl={this.props.ofUsersApiUrl}
                     storage={this.props.storage}
                     setIsAdmin={this.setIsAdmin}
                     userId={this.props.userId}
@@ -185,7 +185,9 @@ class InstitutionDescription extends React.Component {
     });
 
     deleteInstitution = () => {
-        if (confirm("Do you REALLY want to delete this institution?")) {
+        if (confirm("This action will also delete all of the projects associated with this institution.\n\n"
+                    + "This action is irreversible.\n\n"
+                    + "Do you REALLY want to delete this institution?")) {
             fetch(this.props.documentRoot + "/archive-institution/" + this.props.institutionId,
                   {
                       method: "POST",
@@ -203,6 +205,10 @@ class InstitutionDescription extends React.Component {
         }
     };
 
+    gotoInstitutionDashboard = () => {
+        window.open(this.props.documentRoot + "/institution-dashboard/" + this.props.institutionId);
+    };
+
     renderEditButtonGroup = () => <div className="row">
         <div className="col-6">
             <button
@@ -210,8 +216,7 @@ class InstitutionDescription extends React.Component {
                 className="btn btn-sm btn-outline-lightgreen btn-block mt-0"
                 onClick={this.updateInstitution}
             >
-                <span className="fa fa-save mr-1"/>
-                Save Changes
+                <UnicodeIcon icon="save"/> Save Changes
             </button>
         </div>
         <div className="col-6">
@@ -220,13 +225,13 @@ class InstitutionDescription extends React.Component {
                 className="btn btn-sm btn-outline-danger btn-block mt-0"
                 onClick={this.toggleEditMode}
             >
-                <span className="fa fa-ban mr-1"/>Cancel Changes
+                <UnicodeIcon icon="noAction"/> Cancel Changes
             </button>
         </div>
     </div>;
 
     render() {
-        const { documentRoot, of_users_api_url, storage } = this.props;
+        const { documentRoot, ofUsersApiUrl, storage } = this.props;
         return this.state.editMode
         ?
             <InstitutionEditor
@@ -247,7 +252,7 @@ class InstitutionDescription extends React.Component {
                                     className="img-fluid"
                                     src={storage !== null && storage === "local"
                                     ? documentRoot + "/" + this.state.institutionDetails.logo
-                                    : of_users_api_url + "/group/logo/" + this.state.institutionDetails.id}
+                                    : ofUsersApiUrl + "/group/logo/" + this.state.institutionDetails.id}
                                     alt="logo"
                                 />
                             </a>
@@ -266,24 +271,34 @@ class InstitutionDescription extends React.Component {
                     </div>
                     {this.props.isAdmin &&
                     <div className="row justify-content-center mb-2" id="institution-controls">
-                        <div className="col-6">
+                        <div className="col-3">
                             <button
                                 id="edit-institution"
                                 type="button"
                                 className="btn btn-sm btn-outline-lightgreen btn-block mt-0"
                                 onClick={this.toggleEditMode}
                             >
-                                <span className="fa fa-edit mr-1"/>Edit
+                                <UnicodeIcon icon="edit"/> Edit
                             </button>
                         </div>
-                        <div className="col-6">
+                        <div className="col-3">
                             <button
                                 id="delete-institution"
                                 type="button"
                                 className="btn btn-sm btn-outline-danger btn-block mt-0"
                                 onClick={this.deleteInstitution}
                             >
-                                <span className="fa fa-trash-alt mr-1"/>Delete
+                                <UnicodeIcon icon="trash"/> Delete
+                            </button>
+                        </div>
+                        <div className="col-3">
+                            <button
+                                id="institution-dashboard"
+                                type="button"
+                                className="btn btn-sm btn-outline-lightgreen btn-block mt-0"
+                                onClick={this.gotoInstitutionDashboard}
+                            >
+                                Go to Dashboard
                             </button>
                         </div>
                     </div>
@@ -302,6 +317,8 @@ class ImageryList extends React.Component {
         };
     }
 
+    //    Life Cycle Methods    //
+
     componentDidMount() {
         this.getImageryList();
     }
@@ -311,6 +328,8 @@ class ImageryList extends React.Component {
             this.props.setImageryCount(this.state.imageryList.length);
         }
     }
+
+    //    Remote Calls    //
 
     getImageryList = () => {
         fetch(this.props.documentRoot + "/get-all-imagery?institutionId=" + this.props.institutionId)
@@ -346,7 +365,13 @@ class ImageryList extends React.Component {
         }
     };
 
+    //    State Modifications    //
+
     toggleEditMode = () => this.setState({ editMode: !this.state.editMode });
+
+    //    Helper Functions    //
+
+    titleIsTaken = (newTitle) => this.state.imageryList.some(i => i.title === newTitle);
 
     render() {
         return this.state.imageryList.length === 0
@@ -354,9 +379,10 @@ class ImageryList extends React.Component {
             : this.state.editMode
                 ?
                     <NewImagery
-                        getImageryList={this.getImageryList}
                         documentRoot={this.props.documentRoot}
+                        getImageryList={this.getImageryList}
                         institutionId={this.props.institutionId}
+                        titleIsTaken={this.titleIsTaken}
                         toggleEditMode={this.toggleEditMode}
                     />
                 :
@@ -370,7 +396,7 @@ class ImageryList extends React.Component {
                                     className="btn btn-sm btn-block btn-outline-yellow py-2 font-weight-bold"
                                     onClick={this.toggleEditMode}
                                 >
-                                    <span className="fa fa-plus-square mr-1"/>Add New Imagery
+                                    <UnicodeIcon icon="add" backgroundColor="#f1c00f"/>Add New Imagery
                                 </button>
 
                             </div>
@@ -389,32 +415,80 @@ class ImageryList extends React.Component {
     }
 }
 
+const imageryOptions = [
+    // Default type is text, default parent is none, a referenced parent must be entered as a json string
+    // Parameters can be defined one level deep. {paramParent: {paramChild: "", fields: "", fromJsonStr: ""}}
+    {
+        type: "GeoServer",
+        params: [
+            { key: "geoserverUrl", display: "GeoServer URL" },
+            { key: "LAYERS", display: "GeoServer Layer Name", parent: "geoserverParams" },
+            { key: "geoserverParams", display: "GeoServer Params (as JSON object)", required: false },
+        ],
+        // FIXME, add url if help document is created.
+    },
+    {
+        type: "BingMaps",
+        params: [
+            { key: "imageryId", display: "Imagery Id" },
+            { key: "accessToken", display: "Access Token" },
+        ],
+        url: "https://docs.microsoft.com/en-us/bingmaps/getting-started/bing-maps-dev-center-help/getting-a-bing-maps-key",
+    },
+    {
+        type: "Planet",
+        params: [
+            { key: "year", display: "Year", type: "number" },
+            { key: "month", display: "Month", type: "number" },
+            { key: "accessToken", display: "Access Token" },
+        ],
+        url: "https://developers.planet.com/docs/quickstart/getting-started/",
+    },
+];
+
 class NewImagery extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
             newImageryTitle: "",
             newImageryAttribution: "",
-            newGeoServerURL: "",
-            newLayerName: "",
-            newGeoServerParams: "",
+            selectedType: 0,
+            newImageryParams: {},
         };
     }
 
+    //    Lifecycle Methods    //
+
+    componentDidUpdate(prevProps, prevState) {
+        // Clear params different to each type.
+        if (prevState.selectedType !== this.state.selectedType) {
+            this.setState({ newImageryParams: {}});
+        }
+    }
+
+    //    Remote Calls    //
+
     addCustomImagery = () => {
-        fetch(this.props.documentRoot + "/add-institution-imagery",
-              {
-                  method: "POST",
-                  body: JSON.stringify({
-                      institutionId: this.props.institutionId,
-                      imageryTitle: this.state.newImageryTitle,
-                      imageryAttribution: this.state.newImageryAttribution,
-                      geoserverURL: this.state.newGeoServerURL,
-                      layerName: this.state.newLayerName,
-                      geoserverParams: this.state.newGeoServerParams,
-                  }),
-              })
-            .then(response => {
+        const sourceConfig = this.stackParams();
+        if (!this.checkAllParams()) {
+            alert("You must fill out all fields.");
+        } else if (this.props.titleIsTaken(this.state.newImageryTitle)) {
+            alert("The title '" + this.state.newImageryTitle + "' is already taken.");
+        } else if (Object.keys(sourceConfig).length === 0) {
+            // stackParams() will fail if parent is not entered as a JSON string.
+            alert("Invalid JSON in JSON field(s).");
+        } else {
+            fetch(this.props.documentRoot + "/add-institution-imagery",
+                  {
+                      method: "POST",
+                      body: JSON.stringify({
+                          institutionId: this.props.institutionId,
+                          imageryTitle: this.state.newImageryTitle,
+                          imageryAttribution: this.state.newImageryAttribution,
+                          sourceConfig: sourceConfig,
+                      }),
+                  }
+            ).then(response => {
                 if (response.ok) {
                     this.props.getImageryList();
                     this.props.toggleEditMode();
@@ -423,115 +497,134 @@ class NewImagery extends React.Component {
                     alert("Error adding imagery. See console for details.");
                 }
             });
-
+        }
     };
 
+    //    Helper Functions    //
+
+    stackParams = () => {
+        try {
+            const imageryParams = imageryOptions[this.state.selectedType].params;
+            return Object.keys(this.state.newImageryParams)
+                .sort(a => imageryParams.find(p => p.key === a).parent ? 1 : -1) // Sort params that require a parent to the bottom
+                .reduce((a, c) => {
+                    const parentStr = imageryParams.find(p => p.key === c).parent;
+                    if (parentStr) {
+                        const parentObj = JSON.parse(a[parentStr] || "{}");
+                        return { ...a, [parentStr]: { ...parentObj, [c]: this.state.newImageryParams[c] }};
+                    } else {
+                        return { ...a, [c]: this.state.newImageryParams[c] };
+                    }
+                }, { type: imageryOptions[this.state.selectedType].type });
+
+        } catch (e) {
+            return {};
+        }
+    };
+
+    checkAllParams = () => this.state.newImageryTitle.length > 0
+        && this.state.newImageryAttribution.length > 0
+        && imageryOptions[this.state.selectedType].params
+            .every(o => o.required === false
+                        || (this.state.newImageryParams[o.key] && this.state.newImageryParams[o.key].length > 0));
+
+    //    Render Functions    //
+
+    formInput = (title, type, value, callback) => (
+        <div className="mb-3" key={title}>
+            <label>{title}</label>
+            <input
+                className="form-control"
+                type={type}
+                autoComplete="off"
+                onChange={e => callback(e)}
+                value={value || ""}
+            />
+        </div>
+    );
+
     render() {
-        return <div className="row" id="add-imagery">
-            <div className="col">
-                <div className="mb-2 p-2 border rounded">
-                    <div className="mb-3">
-                        <label htmlFor="newImageryTitle">Title</label>
-                        <input
-                            className="form-control"
-                            id="newImageryTitle"
-                            type="text"
-                            autoComplete="off"
-                            onChange={e => this.setState({ newImageryTitle: e.target.value })}
-                            value={this.state.newImageryTitle}
-                        />
+        return (
+            <div className="mb-2 p-2 border rounded">
+                {/* Selection for imagery type */}
+                <div className="mb-3">
+                    <label>Select Type</label>
+                    <select
+                        className="form-control"
+                        onChange={e => this.setState({ selectedType: e.target.value })}
+                        value={this.state.selectedType}
+                    >
+                        {imageryOptions.map((o, i) =>
+                            <option value={i} key={i}>{o.type}</option>
+                        )}
+                    </select>
+                </div>
+                {/* Add fields. Include same for all and unique to selected type. */}
+                {this.formInput("Title", "text", this.state.newImageryTitle, e => this.setState({ newImageryTitle: e.target.value }))}
+                {this.formInput("Attribution", "text", this.state.newImageryAttribution, e => this.setState({ newImageryAttribution: e.target.value }))}
+                {imageryOptions[this.state.selectedType].params.map(o =>
+                    this.formInput(o.display,
+                                   o.type || "text",
+                                   this.state.newImageryParams[o.key],
+                                   e => this.setState({ newImageryParams: { ...this.state.newImageryParams, [o.key]: e.target.value }}))
+                )}
+                {/* Show help URL if there is one. */}
+                {imageryOptions[this.state.selectedType].url &&
+                    <div className="mb-3" >
+                        <a href={imageryOptions[this.state.selectedType].url} target="_blank" rel="noreferrer noopener">
+                            Click here for help.
+                        </a>
                     </div>
-                    <div className="mb-3">
-                        <label htmlFor="newImageryAttribution">Attribution</label>
-                        <input
-                            className="form-control"
-                            id="newImageryAttribution"
-                            type="text"
-                            autoComplete="off"
-                            onChange={e => this.setState({ newImageryAttribution: e.target.value })}
-                            value={this.state.newImageryAttribution}
-                        />
-                    </div>
-                    <div className="mb-3">
-                        <label htmlFor="newGeoServerURL">GeoServer URL</label>
-                        <input
-                            className="form-control"
-                            id="newGeoServerURL"
-                            type="text"
-                            autoComplete="off"
-                            onChange={e => this.setState({ newGeoServerURL: e.target.value })}
-                            value={this.state.newGeoServerURL}
-                        />
-                    </div>
-                    <div className="mb-3">
-                        <label htmlFor="newLayerName">GeoServer Layer Name</label>
-                        <input
-                            className="form-control"
-                            id="newLayerName"
-                            type="text"
-                            autoComplete="off"
-                            onChange={e => this.setState({ newLayerName: e.target.value })}
-                            value={this.state.newLayerName}
-                        />
-                    </div>
-                    <div className="mb-3">
-                        <label htmlFor="newGeoServerParams">GeoServer Params<br/>(as JSON string)</label>
-                        <input
-                            className="form-control"
-                            id="newGeoServerParams"
-                            type="text"
-                            autoComplete="off"
-                            onChange={e => this.setState({ newGeoServerParams: e.target.value })}
-                            value={this.state.newGeoServerParams}
-                        />
-                    </div>
-                    <div className="btn-group-vertical btn-block">
-                        <button
-                            type="button"
-                            id="add-imagery-button"
-                            className="btn btn-sm btn-block btn-outline-yellow btn-group py-2 font-weight-bold"
-                            onClick={this.addCustomImagery}
-                        >
-                            <span className="fa fa-plus-square mr-1 mt-1"/>Add New Imagery
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn-sm btn-block btn-outline-danger btn-group py-2 font-weight-bold"
-                            onClick={this.props.toggleEditMode}
-                        >
-                            <span className="fa fa-ban mr-1 mt-1"/>Discard
-                        </button>
-                    </div>
+                }
+                {/* Action buttons for save and quit */}
+                <div className="btn-group-vertical btn-block">
+                    <button
+                        type="button"
+                        id="add-imagery-button"
+                        className="btn btn-sm btn-block btn-outline-yellow btn-group py-2 font-weight-bold"
+                        onClick={this.addCustomImagery}
+                    >
+                        <UnicodeIcon icon="add" backgroundColor="#f1c00f"/>Add New Imagery
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-block btn-outline-danger btn-group py-2 font-weight-bold"
+                        onClick={this.props.toggleEditMode}
+                    >
+                        <UnicodeIcon icon="noAction"/> Discard
+                    </button>
                 </div>
             </div>
-        </div>;
+        );
     }
 }
 
 function Imagery({ isAdmin, title, deleteImagery, isInstitutionImage }) {
-    return <div className="row mb-1">
-        <div className="col overflow-hidden">
-            <button
-                type="button"
-                title={title}
-                className="btn btn-outline-lightgreen btn-sm btn-block text-truncate"
-            >
-                {title}
-            </button>
+    return (
+        <div className="row mb-1">
+            <div className="col overflow-hidden">
+                <button
+                    type="button"
+                    title={title}
+                    className="btn btn-outline-lightgreen btn-sm btn-block text-truncate"
+                >
+                    {title}
+                </button>
+            </div>
+            {(isAdmin && isInstitutionImage) &&
+            <div className="pr-3">
+                <button
+                    className="btn btn-outline-danger btn-sm btn-block px-3"
+                    id="delete-imagery"
+                    type="button"
+                    onClick={deleteImagery}
+                >
+                    <UnicodeIcon icon="trash"/>
+                </button>
+            </div>
+            }
         </div>
-        {(isAdmin && isInstitutionImage) &&
-        <div className="pr-3">
-            <button
-                className="btn btn-outline-danger btn-sm btn-block px-3"
-                id="delete-imagery"
-                type="button"
-                onClick={deleteImagery}
-            >
-                <span className="fa fa-trash-alt mr-1"/>
-            </button>
-        </div>
-        }
-    </div>;
+    );
 }
 
 function ProjectList({ isAdmin, institutionId, projectList, documentRoot }) {
@@ -545,7 +638,7 @@ function ProjectList({ isAdmin, institutionId, projectList, documentRoot }) {
                         className="btn btn-sm btn-block btn-outline-yellow py-2 font-weight-bold"
                         onClick={() => window.location = documentRoot + "/create-project?institution=" + institutionId}
                     >
-                        <span className="fa fa-plus-square mr-1"/>Create New Project
+                        <UnicodeIcon icon="add" backgroundColor="#f1c00f"/>Create New Project
                     </button>
                 </div>
             </div>
@@ -578,10 +671,10 @@ class Project extends React.Component {
             .then(response => response.ok ? response.json() : Promise.reject(response))
             .then(data => this.setState({
                 boxShadow: data.unanalyzedPlots === 0
-                    ? "0px 0px 8px 1px green inset"
+                    ? "0px 0px 6px 2px #3bb9d6 inset"
                     : (data.flaggedPlots + data.analyzedPlots) > 0
-                        ? "0px 0px 8px 1px yellow inset"
-                        : "0px 0px 8px 1px red inset",
+                        ? "0px 0px 6px 1px yellow inset"
+                        : "0px 0px 6px 1px red inset",
             }))
             .catch(response => console.log(response));
     };
@@ -613,7 +706,7 @@ class Project extends React.Component {
                     className="edit-project btn btn-sm btn-outline-yellow btn-block px-3"
                     href={documentRoot + "/review-project/" + project.id}
                 >
-                    <span className="fa fa-edit"/>
+                    <UnicodeIcon icon="edit"/>
                 </a>
             </div>
             }
@@ -841,7 +934,7 @@ class NewUserButtons extends React.Component {
                             className="btn btn-sm btn-outline-yellow btn-block py-2 font-weight-bold"
                             onClick={() => this.checkUserEmail() && this.addUser()}
                         >
-                            <span className="fa fa-plus-square mr-1"/>Add User
+                            <UnicodeIcon icon="add" backgroundColor="#f1c00f"/>Add User
                         </button>
                     </div>
                 </div>
@@ -854,7 +947,7 @@ class NewUserButtons extends React.Component {
                     id="request-membership-button"
                     onClick={this.props.requestMembership}
                 >
-                    <span className="fa fa-plus- mr-1"/>Request membership
+                    <UnicodeIcon icon="add" backgroundColor="#f1c00f"/>Request membership
                 </button>
             </div>
             }
@@ -868,7 +961,7 @@ export function renderReviewInstitutionPage(args) {
             documentRoot={args.documentRoot}
             userId={args.userId === "" ? -1 : parseInt(args.userId)}
             institutionId={args.institutionId === "" ? -1 : parseInt(args.institutionId)}
-            of_users_api_url={args.of_users_api_url}
+            ofUsersApiUrl={args.of_users_api_url}
             storage={args.storage}
         />,
         document.getElementById("institution")

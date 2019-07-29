@@ -173,6 +173,12 @@ h4 {font-size: 0.5rem;}
 }
 /* Buttons */
 /*****************/
+
+.btn {
+    border-width: 1.5px;
+    font-weight: bold;
+}
+
 .btn-outline-lightgreen{
     color: #31BAB0;
     background-color: transparent;
@@ -264,10 +270,10 @@ a:hover{
     font-style: italic;
     background: white;
     opacity: 0;
-    animation: fade-out 5s;
-    -webkit-animation: fade-out 5s;
-    -moz-animation: fade-out 5s;
-    -o-animation: fade-out 5s;
+    animation: fade-out 6s;
+    -webkit-animation: fade-out 6s;
+    -moz-animation: fade-out 6s;
+    -o-animation: fade-out 6s;
 }
 
 @-webkit-keyframes fade-out {

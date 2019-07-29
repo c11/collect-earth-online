@@ -3,6 +3,7 @@ package org.openforis.ceo.local;
 import static org.openforis.ceo.utils.JsonUtils.filterJsonArray;
 import static org.openforis.ceo.utils.JsonUtils.filterJsonFile;
 import static org.openforis.ceo.utils.JsonUtils.findInJsonArray;
+import static org.openforis.ceo.utils.JsonUtils.mapJsonArray;
 import static org.openforis.ceo.utils.JsonUtils.getNextId;
 import static org.openforis.ceo.utils.JsonUtils.parseJson;
 import static org.openforis.ceo.utils.JsonUtils.elementToArray;
@@ -10,6 +11,7 @@ import static org.openforis.ceo.utils.JsonUtils.readJsonFile;
 import static org.openforis.ceo.utils.JsonUtils.writeJsonFile;
 
 import com.google.gson.JsonObject;
+import java.util.List;
 import org.openforis.ceo.db_api.Imagery;
 import spark.Request;
 import spark.Response;
@@ -19,13 +21,34 @@ public class JsonImagery implements Imagery {
     public String getAllImagery(Request req, Response res) {
         var institutionId = req.queryParams("institutionId");
         var imageryList = elementToArray(readJsonFile("imagery-list.json"));
-        if (institutionId == null || institutionId.isEmpty()) {
-            return filterJsonArray(imageryList,
-                                   imagery -> imagery.get("visibility").getAsString().equals("public")).toString();
+        var filteredImagery = (institutionId == null || institutionId.isEmpty())
+            ? filterJsonArray(imageryList,
+                              imagery -> imagery.get("visibility").getAsString().equals("public"))
+            : filterJsonArray(imageryList,
+                              imagery -> imagery.get("visibility").getAsString().equals("public")
+                                           || imagery.get("institution").getAsString().equals(institutionId));
+        return mapJsonArray(filteredImagery,
+                            imagery -> {
+                                var sourceConfig = imagery.get("sourceConfig").getAsJsonObject();
+                                // Return only necessary fields for types we proxy
+                                if (List.of("DigitalGlobe", "EarthWatch", "Planet", "GeoServer").contains(sourceConfig.get("type").getAsString())) {
+                                    var cleanSource = new JsonObject();
+                                    cleanSource.add("type", sourceConfig.get("type"));
+                                    imagery.add("sourceConfig", cleanSource);
+                                    return imagery;
+                                } else {
+                                    return imagery;
+                                }
+                            }).toString();
+    }
+
+    public JsonObject getImagerySourceConfig(Integer imageryId) {
+        var imageryList = elementToArray(readJsonFile("imagery-list.json"));
+        var foundImagery = findInJsonArray(imageryList, imagery -> imagery.get("id").getAsInt() == imageryId);
+        if (foundImagery.isPresent()) {
+            return foundImagery.get().get("sourceConfig").getAsJsonObject();
         } else {
-            return filterJsonArray(imageryList,
-                                   imagery -> imagery.get("visibility").getAsString().equals("public")
-                                           || imagery.get("institution").getAsString().equals(institutionId)).toString();
+            return new JsonObject();
         }
     }
 
@@ -48,27 +71,13 @@ public class JsonImagery implements Imagery {
             var institutionId         = jsonInputs.get("institutionId").getAsInt();
             var imageryTitle          = jsonInputs.get("imageryTitle").getAsString();
             var imageryAttribution    = jsonInputs.get("imageryAttribution").getAsString();
-            var geoserverURL          = jsonInputs.get("geoserverURL").getAsString();
-            var layerName             = jsonInputs.get("layerName").getAsString();
-            var geoserverParamsString = jsonInputs.get("geoserverParams").getAsString();
-            var geoserverParams       = geoserverParamsString.equals("")
-                                            ? new JsonObject()
-                                            : parseJson(geoserverParamsString).getAsJsonObject();
-
-            // Add layerName to geoserverParams
-            geoserverParams.addProperty("LAYERS", layerName);
+            var sourceConfig          = jsonInputs.get("sourceConfig").getAsJsonObject();
 
             // Read in the existing imagery list
             var imageryList = elementToArray(readJsonFile("imagery-list.json"));
 
             // Generate a new imagery id
             var newImageryId = getNextId(imageryList);
-
-            // Create a new source configuration for this imagery
-            var sourceConfig = new JsonObject();
-            sourceConfig.addProperty("type", "GeoServer");
-            sourceConfig.addProperty("geoserverUrl", geoserverURL);
-            sourceConfig.add("geoserverParams", geoserverParams);
 
             // Create a new imagery object
             var newImagery = new JsonObject();
