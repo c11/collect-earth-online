@@ -135,7 +135,7 @@ class Collection extends React.Component {
     }
 
     getProjectData = () => {
-        Promise.all([this.getProjectById(), this.getProjectPlots(), this.checkForGeodash()])
+        Promise.all([this.getProjectById(), this.getProjectPlots(), this.checkForGeodash(), this.checkForTimeSync()])
             .catch(response => {
                 console.log(response);
                 alert("Error retrieving the project info. See console for details.");
@@ -165,6 +165,19 @@ class Collection extends React.Component {
                     ? eval(data.widgets)
                     : [];
             this.setState({ hasGeoDash: widgets.length > 0 });
+            return Promise.resolve("resolved");
+        });
+
+    checkForTimeSync = () => fetch(this.props.documentRoot + "/geo-dash/id/" + this.props.projectId)
+        .then(response => response.ok ? response.json() : Promise.reject(response))
+        .then(data => {
+            const widgets = Array.isArray(data.widgets)
+                ? data.widgets
+                : Array.isArray(eval(data.widgets))
+                    ? eval(data.widgets)
+                    : [];
+            console.log(widgets);
+            this.setState({ hasTimeSync: widgets.length > 0 });
             return Promise.resolve("resolved");
         });
 

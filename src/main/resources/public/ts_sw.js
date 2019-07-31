@@ -22,7 +22,7 @@ self.addEventListener('fetch', function (event) {
     }
     event.respondWith(fetch(event.request));
   } else {
-    console.log('The service worker is serving the asset.', event.request.url);      
+    console.log('Y: The service worker is serving the asset.', event.request.url);      
     event.respondWith(
         caches.match(event.request)
         .then(function (response) {
