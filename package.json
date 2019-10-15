@@ -81,7 +81,7 @@
     "scripts": {
         "webpack-dev": "webpack --config webpack.dev.js",
         "webpack-prod": "webpack --config webpack.prod.js",
-        "server-json": "mvn compile exec:java -Dexec.args=JSON",
-        "server-pg": "mvn compile exec:java -Dexec.args=POSTGRES"
+        "server-json": "mvn3 compile exec:java -Dexec.args=JSON",
+        "server-pg": "mvn3 compile exec:java -Dexec.args=POSTGRES"
     }
 }
