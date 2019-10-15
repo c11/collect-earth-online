@@ -42,9 +42,9 @@ public class JsonPlots implements Plots {
 
     public String getProjectPlot(Request req, Response res) {
         final var projectId = req.queryParams("projectId");
-        final var plotId = req.queryParams("plotId");
+        final var plotId       = Integer.parseInt(req.queryParams("plotId"));
         final var plots = elementToArray(readJsonFile("plot-data-" + projectId + ".json"));
-        final var matchingPlot = findInJsonArray(plots, plot -> plot.get("id").getAsString().equals(plotId));
+        final var matchingPlot = findInJsonArray(plots, pl -> getBestPlotId(pl).equals(plotId));
         if (matchingPlot.isPresent()) {
             return matchingPlot.get().toString();
         } else {

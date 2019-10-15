@@ -43,9 +43,15 @@ public class PostgresImagery implements Imagery {
                         : parseJson(rs.getString("extent")).getAsJsonArray());
                     var sourceConfig = parseJson(rs.getString("source_config")).getAsJsonObject();
                     // Return only necessary fields for types we proxy
-                    if (List.of("DigitalGlobe", "EarthWatch", "Planet", "GeoServer").contains(sourceConfig.get("type").getAsString())) {
+                    if (List.of("DigitalGlobe", "EarthWatch", "GeoServer").contains(sourceConfig.get("type").getAsString())) {
                         var cleanSource = new JsonObject();
                         cleanSource.add("type", sourceConfig.get("type"));
+                        newImagery.add("sourceConfig", cleanSource);
+                    } else if (sourceConfig.get("type").getAsString().equals("Planet")) {
+                        var cleanSource = new JsonObject();
+                        cleanSource.add("type",  sourceConfig.get("type"));
+                        cleanSource.add("month", sourceConfig.get("month"));
+                        cleanSource.add("year",  sourceConfig.get("year"));
                         newImagery.add("sourceConfig", cleanSource);
                     } else {
                         newImagery.add("sourceConfig", sourceConfig);
@@ -122,7 +128,7 @@ public class PostgresImagery implements Imagery {
                     "SELECT * FROM check_institution_imagery(?,?)")) {
 
                 pstmt_check.setInt(1, institutionId);
-                pstmt_check.setString(1, imageryTitle);
+                pstmt_check.setString(2, imageryTitle);
                 try (var rs_check = pstmt_check.executeQuery()) {
                     if (rs_check.next() && !rs_check.getBoolean("check_institution_imagery")){
                         try (var pstmt = conn.prepareStatement(
