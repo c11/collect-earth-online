@@ -180,7 +180,7 @@ public class Views {
     
     public static Route timesync(FreeMarkerEngine freemarker) {
         Function<Request, String> getAccountId = (req) -> req.params(":id");
-        return makeAuthenticatedRoute("TimeSync", freemarker,
+        return makeRoute("TimeSync", freemarker,
                 Map.of("interpreter", getAccountId));
     }
 

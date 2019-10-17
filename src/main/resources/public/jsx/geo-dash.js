@@ -3,6 +3,15 @@ import ReactDOM from "react-dom";
 import { mercator } from "../js/mercator-openlayers.js";
 import { UnicodeIcon } from "./utils/textUtils";
 
+import { Feature, Map, View } from "ol";
+import { buffer as ExtentBuffer } from "ol/extent";
+import { Circle, Polygon, Point } from "ol/geom";
+import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
+import { transform as projTransform } from "ol/proj";
+import { OSM, Vector, XYZ } from "ol/source";
+import { Style, Stroke } from "ol/style";
+import { getArea as sphereGetArea } from "ol/sphere";
+
 class Geodash extends React.Component {
     constructor(props) {
         super(props);
@@ -11,10 +20,10 @@ class Geodash extends React.Component {
             callbackComplete: false,
             left: 0,
             ptop: 0,
-            institution: this.getParameterByName("institution") ? this.getParameterByName("institution") : "3",
+            institutionId: this.getParameterByName("institutionId") ? this.getParameterByName("institutionId") : "3",
             projAOI: this.getParameterByName("aoi"),
             projPairAOI: "",
-            pid: this.getParameterByName("pid"),
+            projectId: this.getParameterByName("projectId"),
             mapCenter:null,
             mapZoom:null,
             imageryList:[],
@@ -36,11 +45,11 @@ class Geodash extends React.Component {
     }
 
     componentDidMount() {
-        fetch(this.props.documentRoot + "/get-all-imagery?institutionId=" + this.state.institution)
+        fetch(this.props.documentRoot + "/get-all-imagery?institutionId=" + this.state.institutionId)
             .then(response => response.ok ? response.json() : Promise.reject(response))
             .then(data => this.setState({ imageryList: data }))
             .then(() =>
-                fetch(this.props.documentRoot + "/geo-dash/id/" + this.state.pid)
+                fetch(this.props.documentRoot + "/geo-dash/get-by-projid?projectId=" + this.state.projectId)
                     .then(response => response.json())
                     .then(data => data.widgets.map(widget => {
                         widget.isFull = false;
@@ -352,10 +361,10 @@ class MapWidget extends React.Component {
         const projPairAOI = this.props.projPairAOI;
 
         const mapdiv = "widgetmap_" + widget.id;
-        const map = new ol.Map({
+        const map = new Map({
             layers: [raster],
             target: mapdiv,
-            view: new ol.View({
+            view: new View({
                 center: [0, 0],
                 projection: "EPSG:3857",
                 zoom: 4,
@@ -387,7 +396,7 @@ class MapWidget extends React.Component {
             }
         }
         map.getView().fit(
-            ol.proj.transform([projAOI[0], projAOI[1]], "EPSG:4326", "EPSG:3857").concat(ol.proj.transform([projAOI[2], projAOI[3]], "EPSG:4326", "EPSG:3857")),
+            projTransform([projAOI[0], projAOI[1]], "EPSG:4326", "EPSG:3857").concat(projTransform([projAOI[2], projAOI[3]], "EPSG:4326", "EPSG:3857")),
             map.getSize()
         );
 
@@ -657,7 +666,7 @@ class MapWidget extends React.Component {
                         }
                     }
                 })
-                .catch((error) => {
+                .catch(error => {
                     console.log(error);
                 });
         }
@@ -676,9 +685,9 @@ class MapWidget extends React.Component {
     }
 
     getRasterByBasemapConfig = basemap =>
-        new ol.layer.Tile({
+        new TileLayer({
             source: (!basemap || basemap.id === "osm")
-                ? new ol.source.OSM()
+                ? new OSM()
                 : mercator.createSource(basemap.sourceConfig, basemap.id, this.props.documentRoot),
         });
 
@@ -875,7 +884,7 @@ class MapWidget extends React.Component {
 
     addTileServer = (imageid, token, mapdiv, isDual) => {
         window.setTimeout(() => {
-            const source = new ol.source.XYZ({
+            const source = new XYZ({
                 url: "https://earthengine.googleapis.com/map/" + imageid + "/{z}/{x}/{y}?token=" + token,
             });
             source.on("tileloaderror", function(error) {
@@ -889,7 +898,7 @@ class MapWidget extends React.Component {
                     console.log(e.message);
                 }
             });
-            this.state.mapRef.addLayer(new ol.layer.Tile({
+            this.state.mapRef.addLayer(new TileLayer({
                 source: source,
                 id: mapdiv,
             }));
@@ -900,8 +909,8 @@ class MapWidget extends React.Component {
     };
 
     addDualLayer = (imageid, token, mapdiv) => {
-        const googleLayer = new ol.layer.Tile({
-            source: new ol.source.XYZ({
+        const googleLayer = new TileLayer({
+            source: new XYZ({
                 url: "https://earthengine.googleapis.com/map/" + imageid + "/{z}/{x}/{y}?token=" + token,
             }),
             id: mapdiv + "_dual",
@@ -931,15 +940,15 @@ class MapWidget extends React.Component {
         try {
             const bradius = this.props.getParameterByName("bradius");
             const bcenter = this.props.getParameterByName("bcenter");
-            const plotshape = this.props.getParameterByName("plotshape");
-            const projectID = this.props.getParameterByName("pid");
-            const plotID = this.props.getParameterByName("plotid");
+            const plotshape = this.props.getParameterByName("plotShape");
+            const projectID = this.props.getParameterByName("projectId");
+            const plotID = this.props.getParameterByName("plotId");
             if (plotshape && plotshape === "square") {
-                const centerPoint = new ol.geom.Point(ol.proj.transform(JSON.parse(bcenter).coordinates, "EPSG:4326", "EPSG:3857"));
-                const pointFeature = new ol.Feature(centerPoint);
+                const centerPoint = new Point(projTransform(JSON.parse(bcenter).coordinates, "EPSG:4326", "EPSG:3857"));
+                const pointFeature = new Feature(centerPoint);
                 const poitnExtent = pointFeature.getGeometry().getExtent();
-                const bufferedExtent = new ol.extent.buffer(poitnExtent, parseInt(bradius));
-                const bufferPolygon = new ol.geom.Polygon(
+                const bufferedExtent = new ExtentBuffer(poitnExtent, parseInt(bradius));
+                const bufferPolygon = new Polygon(
                     [
                         [[bufferedExtent[0], bufferedExtent[1]],
                          [bufferedExtent[0], bufferedExtent[3]],
@@ -948,14 +957,14 @@ class MapWidget extends React.Component {
                          [bufferedExtent[0], bufferedExtent[1]]],
                     ]
                 );
-                const bufferedFeature = new ol.Feature(bufferPolygon);
-                const vectorSource = new ol.source.Vector({});
+                const bufferedFeature = new Feature(bufferPolygon);
+                const vectorSource = new Vector({});
                 vectorSource.addFeatures([bufferedFeature]);
-                const layer = new ol.layer.Vector({
+                const layer = new VectorLayer({
                     source: vectorSource,
                     style: [
-                        new ol.style.Style({
-                            stroke: new ol.style.Stroke({
+                        new Style({
+                            stroke: new Stroke({
                                 color: "#8b2323",
                                 width: 2,
                             }),
@@ -965,15 +974,15 @@ class MapWidget extends React.Component {
                 });
                 whichMap.addLayer(layer);
             } else if (plotshape && plotshape === "circle") {
-                const circle = new ol.geom.Circle(ol.proj.transform(JSON.parse(bcenter).coordinates, "EPSG:4326", "EPSG:3857"), bradius * 1);
-                const CircleFeature = new ol.Feature(circle);
-                const vectorSource = new ol.source.Vector({});
+                const circle = new Circle(projTransform(JSON.parse(bcenter).coordinates, "EPSG:4326", "EPSG:3857"), bradius * 1);
+                const CircleFeature = new Feature(circle);
+                const vectorSource = new Vector({});
                 vectorSource.addFeatures([CircleFeature]);
-                const layer = new ol.layer.Vector({
+                const layer = new VectorLayer({
                     source: vectorSource,
                     style: [
-                        new ol.style.Style({
-                            stroke: new ol.style.Stroke({
+                        new Style({
+                            stroke: new Stroke({
                                 color: "#8b2323",
                                 width: 2,
                             }),
@@ -983,7 +992,7 @@ class MapWidget extends React.Component {
                 });
                 whichMap.addLayer(layer);
             } else {
-                fetch(this.props.documentRoot + "/get-proj-plot/" + projectID + "/" + plotID)
+                fetch(this.props.documentRoot + "/get-proj-plot?projectId=" + projectID + "&plotId=" + plotID)
                     .then(res => res.json())
                     .then(data => {
                         const geoJsonObject = typeof(data) === "string" ? JSON.parse(data) : data;
@@ -991,8 +1000,8 @@ class MapWidget extends React.Component {
                         const mapConfig = {};
                         mapConfig.map = whichMap;
                         const style = [
-                            new ol.style.Style({
-                                stroke: new ol.style.Stroke({
+                            new Style({
+                                stroke: new Stroke({
                                     color: "yellow",
                                     width: 3,
                                 }),
@@ -1084,7 +1093,8 @@ class GraphWidget extends React.Component {
                         console.warn("Wrong Data Returned");
                     }
                 }
-            });
+            })
+            .catch(error => console.log(error));
         window.addEventListener("resize", () => this.handleResize());
     }
 
@@ -1200,7 +1210,7 @@ class StatsWidget extends React.Component {
         }
     };
 
-    calculateArea = poly => this.numberWithCommas(Math.round(Math.abs(new ol.Sphere(6378137).geodesicArea(poly))) / 10000);
+    calculateArea = poly => this.numberWithCommas(Math.round(Math.abs(sphereGetArea(poly))) / 10000);
 
     componentDidMount() {
         const projPairAOI = this.props.projPairAOI;
@@ -1222,7 +1232,8 @@ class StatsWidget extends React.Component {
                 } else {
                     this.setState({ totalPop: this.numberWithCommas(data.pop), area: this.calculateArea(JSON.parse(projPairAOI)) + " ha", elevation: this.numberWithCommas(data.minElev) + " - " + this.numberWithCommas(data.maxElev) + " m" });
                 }
-            });
+            })
+            .catch(error => console.log(error));
     }
 
     render() {
