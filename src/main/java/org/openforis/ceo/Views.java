@@ -2,9 +2,11 @@ package org.openforis.ceo;
 
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Stream;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.openforis.ceo.env.CeoConfig;
+
 import spark.ModelAndView;
 import spark.Request;
 import spark.Route;
@@ -179,9 +181,10 @@ public class Views {
     }
     
     public static Route timesync(FreeMarkerEngine freemarker) {
-        Function<Request, String> getAccountId = (req) -> req.params(":id");
-        return makeRoute("TimeSync", freemarker,
-                Map.of("interpreter", getAccountId));
+        return makeRoute("TimeSync", freemarker);
+        // Function<Request, String> getAccountId = (req) -> req.queryParams("userId");
+        // return makeRoute("TimeSync", freemarker,
+        //         Map.of("interpreter", getAccountId));
     }
 
     // public static Route timeSyncDash(FreeMarkerEngine freemarker) {

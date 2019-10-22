@@ -167,7 +167,7 @@ class Collection extends React.Component {
             return Promise.resolve("resolved");
         });
 
-    checkForTimeSync = () => fetch(this.props.documentRoot + "/geo-dash/id/" + this.props.projectId)
+    checkForTimeSync = () => fetch(this.props.documentRoot + "/geo-dash/get-by-projid?projectId=" + this.props.projectId)
         .then(response => response.ok ? response.json() : Promise.reject(response))
         .then(data => {
             const widgets = Array.isArray(data.widgets)
@@ -1317,7 +1317,7 @@ class PlotNavigation extends React.Component {
         const { props } = this;
         return (
             <div className="text-center mt-2">
-                <CollapsableTitle
+                <CollapsibleTitle
                     title={`Plot Navigation ${this.props.plotId ? `- ID: ${this.props.plotId}` : ""}`}
                     showGroup={this.state.showNav}
                     toggleShow={() => this.setState({ showNav: !this.state.showNav })}
@@ -1391,7 +1391,7 @@ class ImageryOptions extends React.Component {
                 <input
                     type="range"
                     min="2016"
-                    max="2018"
+                    max={new Date().getFullYear()}
                     value={this.props.imageryYearPlanet}
                     className="slider"
                     id="myRange"
@@ -1418,7 +1418,7 @@ class ImageryOptions extends React.Component {
         const { props } = this;
         return (
             <div className="justify-content-center text-center">
-                <CollapsableTitle
+                <CollapsibleTitle
                     title="Imagery Options"
                     showGroup={this.state.showImg}
                     toggleShow={() => this.setState({ showImg: !this.state.showImg })}
@@ -1442,7 +1442,7 @@ class ImageryOptions extends React.Component {
                             }
                         </select>
                         {props.imageryTitle === "DigitalGlobeWMSImagery" && this.digitalGlobeMenus()}
-                        {props.imageryTitle === "PlanetGlobalMosaic" && this.planetMenus()}
+                        {props.imageryType === "Planet" && this.planetMenus()}
                     </Fragment>
                 }
             </div>
@@ -1506,7 +1506,7 @@ class ProjectStats extends React.Component {
     }
 
     getProjectStats() {
-        fetch(this.props.documentRoot + "/get-project-stats/" + this.props.projectId)
+        fetch(this.props.documentRoot + "/get-project-stats?projectId=" + this.props.projectId)
             .then(response => response.ok ? response.json() : Promise.reject(response))
             .then(data => this.setState({ stats: data }))
             .catch(response => {
@@ -1630,7 +1630,7 @@ function QuitMenu({ userId, projectId, documentRoot }) {
                             className="btn bg-lightgreen btn-sm"
                             id="quit-button"
                             onClick={() =>
-                                fetch(documentRoot + "/release-plot-locks/" + userId + "/" + projectId, { method: "POST" })
+                                fetch(documentRoot + "/release-plot-locks?userId=" + userId + "&projectId=" + projectId, { method: "POST" })
                                     .then(() => window.location = documentRoot + "/home")
                             }
                         >

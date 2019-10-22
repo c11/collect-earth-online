@@ -16,7 +16,7 @@
     <script type="text/javascript" src="${root}/js/ts_specIndexStretch.js"></script>
 
     <script>
-        var userID = ${interpreter};
+        var userID = ${userid};
         var userName = "${username}";
         var authHeader = "authHeader";
         var tsDashMessage = new URLSearchParams(window.location.search).keys().next().value;

@@ -70,7 +70,7 @@ public class JsonTimeSync implements TimeSync {
 
     @Override
     public String getAssignedProjects(Request req, Response res) {
-        return null;
+        return "null";
     }
 
     @Override
