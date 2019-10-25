@@ -2,6 +2,7 @@ package org.openforis.ceo.local;
 
 import static javax.servlet.http.HttpServletResponse.SC_NO_CONTENT;
 import static org.openforis.ceo.utils.JsonUtils.addElementToJsonFile;
+import static org.openforis.ceo.utils.JsonUtils.elementToArray;
 import static org.openforis.ceo.utils.JsonUtils.expandResourcePath;
 import static org.openforis.ceo.utils.JsonUtils.filterJsonArray;
 import static org.openforis.ceo.utils.JsonUtils.filterJsonFile;
@@ -80,7 +81,8 @@ public class JsonTimeSync implements TimeSync {
         var projectId = req.params(":project_id");
         var plotId = req.params(":plotid");
         var packet = req.params(":packet");
-        var plots = readJsonFile("timesync-data-" + projectId + ".json").getAsJsonArray();
+        var plots = elementToArray(readJsonFile("timesync-data-" + projectId + ".json")); //.getAsJsonArray();
+
         var matched = findInJsonArray(plots, plot -> plot.get("userId").getAsString().equals(interpreter) 
                                                         && plot.get("projectId").getAsString().equals(projectId)
                                                         && plot.get("plotId").getAsString().equals(plotId)

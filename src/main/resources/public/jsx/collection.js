@@ -552,9 +552,13 @@ class Collection extends React.Component {
             "currentLocation": currentPlot.center
         }
 
-        window.open(this.props.documentRoot + `/timesync/${this.props.userId}?`
+        window.open(this.props.documentRoot + `/timesync?`
                     + encodeURIComponent(JSON.stringify(message)),
-                    "_timesync-dash");
+                    "_timesync-dash");        
+
+        // window.open(this.props.documentRoot + `/timesync/${this.props.userId}?`
+        //             + encodeURIComponent(JSON.stringify(message)),
+        //             "_timesync-dash");
     }
 
     createPlotKML = () => {

@@ -378,12 +378,14 @@ function getData(sessionInfo, specIndex, activeRedSpecIndex, activeGreenSpecInde
                 });
         });
 
+    //YANG: Oct. 2019, disable all spectral data
     //retrieve all spectral data
-    $("#btnPoints").attr('disabled', true); //disable all points button
-    fetch(urls.allSpec)
-        .then(res => res.json())
-        .then(dat => processAllSpectrals(dat.timeseries));
-
+    if (false) {
+        $("#btnPoints").attr('disabled', true); //disable all points button
+        fetch(urls.allSpec)
+            .then(res => res.json())
+            .then(dat => processAllSpectrals(dat.timeseries));
+    }
 }
 
 /**
@@ -430,14 +432,14 @@ function addProjectData(sessionInfo) {
  * TODO: which mechanism should be used, localStorage or indexedDB?
  * 
  */
-var cacheWorker = new Worker('/js/ts_webworker.js');
-function preCache() {
-    let message = {
-        tsTargetDay: sessionInfo.tsTargetDay,
-        plots: sessionInfo.plots
-    }
-    cacheWorker.postMessage(message);
-}
+// var cacheWorker = new Worker('/js/ts_webworker.js');
+// function preCache() {
+//     let message = {
+//         tsTargetDay: sessionInfo.tsTargetDay,
+//         plots: sessionInfo.plots
+//     }
+//     cacheWorker.postMessage(message);
+// }
 
 // function preCache() {
 //   sessionInfo.plots.map(p => {
