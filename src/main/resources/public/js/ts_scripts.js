@@ -2727,7 +2727,7 @@ function fetchUrlFromStore(chip_url) {
     const currentDate = new Date();
     currentDate.setDate(currentDate.getDate() - 1);
     const chipInfo = JSON.parse(localStorage.getItem(chip_url));
-    if (new Date(chipInfo.lastGatewayUpdate) > currentDate) {
+    if (chipInfo && new Date(chipInfo.lastGatewayUpdate) > currentDate) {
         return chipInfo.chip_url;
     }
     return '';
@@ -2738,34 +2738,37 @@ function getImageChip(iid) {
     // or https://localhost:8888/ts/image_chip/:lng/:lat/:iid/:vis/:size
     //TODO: note the hard coded tc and 255
 
-    return `${geeServer}/ts/image_chip/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}/${iid}/tc/255`;
+    // return `${geeServer}/ts/image_chip/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}/${iid}/tc/255`;
 
-    // let chipUrl = `${geeServer}/ts/image_chip/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}/${iid}/tc/255`;
-    // let needFetch = true;
+    //on initial run, defaultUrl is always used and subsequent calls will use cached urls.
+    let defaultUrl = `${geeServer}/ts/image_chip/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}/${iid}/tc/255`;
+    let chipUrl = `${geeServer}/ts/image_chip_url/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}/${iid}/tc/255`;
+    let needFetch = true;
 
     // let resultUrl = chipUrl;
-    // //have storage support
-    // if (typeof (Storage) !== 'undefined') {
-    //     const chipinfo = fetchUrlFromStore(chipUrl);
-    //     if (chipinfo !== '') {
-    //         return chipinfo;
-    //     }
-    // }
+    //have storage support
+    if (typeof (Storage) !== 'undefined') {
+        const chipinfo = fetchUrlFromStore(chipUrl);
+        if (chipinfo !== '') {
+            return chipinfo;
+        }
+    }
 
-    // if (needFetch) {
-    //     fetch(chipUrl).then(res => {
-    //         if (res.ok) {
-    //             return res.json();
-    //         }
-    //         else {
-    //             Promise.reject();
-    //         }
-    //     }).then(data => {
-    //         data.lastGatewayUpdate = new Date();
-    //         localStorage.setItem(chipUrl, JSON.stringify(data));
-
-    //     })
-    // }
+    if (needFetch) {
+        fetch(chipUrl).then(res => {
+            if (res.ok) {
+                return res.json();
+            }
+            else {
+                Promise.reject();
+            }
+        }).then(data => {
+            console.log(JSON.stringify(data));
+            data.lastGatewayUpdate = new Date();
+            localStorage.setItem(chipUrl, JSON.stringify(data));
+        })
+    }
+    return defaultUrl;
 }
 
 function makeChipInfo(selection, origData) {
