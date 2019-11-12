@@ -1006,7 +1006,7 @@ public class JsonProjects implements Projects {
                     }
 
                     // create TimeSync file for the project timesync-data-<id>.json file
-                    writeJsonFile("timesync-data-" + newProjectId + ".json", new JsonObject());
+                    writeJsonFile("timesync-data-" + newProjectId + ".json", new JsonArray());
 
                     return newProjectData;
         } else {

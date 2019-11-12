@@ -234,7 +234,9 @@
 
 
     <div id="formsDiv" class="sectionDiv">
-        <p class="header">Interpretation Forms</p>
+        <div class="header">Interpretation Forms
+            <button id="saveBtn" class="btn btn-default btn-xs" type="button" style="font-size:11px; margin-bottom:2px; height:21.7167px; text-align: left;">Save</button>
+        </div>
         <ul class="test">
             <li id="segmentsFormTab" class="selected" style="border-top-left-radius:4px; text-align:center;">Segments
             <li id="verticesFormTab" class="unselected" style="margin-left:-1px; text-align:center;">Vertices

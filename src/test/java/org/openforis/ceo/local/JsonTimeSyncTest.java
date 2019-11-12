@@ -5,8 +5,10 @@ package org.openforis.ceo.local;
 //import org.jboss.shrinkwrap.api.ShrinkWrap;
 //import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 //import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import com.google.gson.JsonArray;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.openforis.ceo.utils.JsonUtils;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -15,10 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import static org.junit.Assert.*;
-
-
-import static org.openforis.ceo.utils.JsonUtils.addElementToJsonFile;
-import static org.openforis.ceo.utils.JsonUtils.parseJson;
+import static org.openforis.ceo.utils.JsonUtils.*;
 
 //@RunWith(Arquillian.class)
 public class JsonTimeSyncTest {
@@ -32,7 +31,10 @@ public class JsonTimeSyncTest {
     @Test
     public void saveVertex() throws IOException {
         var jsonFile = "/Users/yang/MWorkspace/MDocker/collect-earth-online-ceo-update/debugging/timesync_vertices.json";
-//        var reader = new BufferedReader(new FileReader(jsonFile));
+
+        writeJsonFile("timesync-data.json", new JsonArray());
+
+        //        var reader = new BufferedReader(new FileReader(jsonFile));
         var strJson = new String(Files.readAllBytes(Paths.get(jsonFile)));
 
         System.out.println(strJson);
@@ -44,8 +46,8 @@ public class JsonTimeSyncTest {
         var packet = jsonInputs.get("packet").getAsString();
 
         //NOTE: this is not an efficient implementation.
-        var tsFile = "timesync-data-" + projectId + ".json";
-        addElementToJsonFile(tsFile, jsonInputs,
+//        var tsFile = "timesync-data-" + projectId + ".json";
+        addElementToJsonFile("timesync-data.json", jsonInputs,
                 plot -> !plot.get("plotId").getAsString().equals(plotId)
                         || !plot.get("userId").getAsString().equals(userName)
                         || !plot.get("packet").getAsString().equals(packet));
