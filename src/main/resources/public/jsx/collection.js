@@ -548,7 +548,7 @@ class Collection extends React.Component {
         const { currentPlot, mapConfig, currentProject } = this.state;
         const message = {
             "projectID": this.props.projectId,
-            "plotID": this.props.userId,
+            "plotID": currentPlot.plotId,
             "currentLocation": currentPlot.center
         }
 
