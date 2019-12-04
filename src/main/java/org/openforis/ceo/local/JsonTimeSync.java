@@ -52,15 +52,9 @@ import org.openforis.ceo.db_api.TimeSync;
 import spark.Request;
 import spark.Response;
 
-
-
-
-
 /**
- * For JSON implementation, only two methods are used:
- *      getVerticesForPlot
- *      saveVertex
- * both function read and write data to the same json file.
+ * For JSON implementation, only two methods are used: getVerticesForPlot
+ * saveVertex both function read and write data to the same json file.
  */
 public class JsonTimeSync implements TimeSync {
 
@@ -76,17 +70,16 @@ public class JsonTimeSync implements TimeSync {
 
     @Override
     public String getVerticesForPlot(Request req, Response res) {
-        ///timesync/vertex/:interpreter/:project_id/:plotid/:packet
+        /// timesync/vertex/:interpreter/:project_id/:plotid/:packet
         var interpreter = req.params(":interpreter");
         var projectId = req.params(":project_id");
         var plotId = req.params(":plotid");
         var packet = req.params(":packet");
-        var plots = elementToArray(readJsonFile("timesync-data-" + projectId + ".json")); //.getAsJsonArray();
+        var plots = elementToArray(readJsonFile("timesync-data-" + projectId + ".json")); // .getAsJsonArray();
 
-        var matched = findInJsonArray(plots, plot -> plot.get("userId").getAsString().equals(interpreter) 
-                                                        && plot.get("projectId").getAsString().equals(projectId)
-                                                        && plot.get("plotId").getAsString().equals(plotId)
-                                                        && plot.get("packet").getAsString().equals(packet));
+        var matched = findInJsonArray(plots, plot -> plot.get("userId").getAsString().equals(interpreter)
+                && plot.get("projectId").getAsString().equals(projectId)
+                && plot.get("plotId").getAsString().equals(plotId) && plot.get("packet").getAsString().equals(packet));
         if (matched.isPresent()) {
             return matched.get().toString();
         } else {
@@ -112,12 +105,12 @@ public class JsonTimeSync implements TimeSync {
         var userName = jsonInputs.get("userId").getAsString();
         var packet = jsonInputs.get("packet").getAsString();
 
-        //NOTE: this is not an efficient implementation.
+        // NOTE: this is not an efficient implementation.
         var tsFile = "timesync-data-" + projectId + ".json";
-        addElementToJsonFile(tsFile, jsonInputs, 
-                                plot -> !plot.get("plotId").getAsString().equals(plotId) 
-                                    || !plot.get("userId").getAsString().equals(userName)
-                                    || !plot.get("packet").getAsString().equals(packet));
+        addElementToJsonFile(tsFile, jsonInputs,
+                plot -> !plot.get("plotId").getAsString().equals(plotId)
+                        || !plot.get("userId").getAsString().equals(userName)
+                        || !plot.get("packet").getAsString().equals(packet));
         return "";
     }
 
@@ -128,6 +121,16 @@ public class JsonTimeSync implements TimeSync {
 
     @Override
     public String getComment(Request req, Response res) {
+        return null;
+    }
+
+    @Override
+    String getImagePreference(Request req, Response res) {
+        return null;
+    }
+
+    @Override
+    String updateImagePreference(Request req, Response res) {
         return null;
     }
 }

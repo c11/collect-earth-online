@@ -12,7 +12,7 @@ import static org.openforis.ceo.utils.DatabaseUtils.connect;
 import static org.openforis.ceo.utils.JsonUtils.parseJson;
 
 public class PostgresTimeSync implements TimeSync {
-  //TODO: make generic function to excute query
+  // TODO: make generic function to excute query
   @Override
   public String getVersion(Request req, Response res) {
     return "Version 1.0";
@@ -38,7 +38,7 @@ public class PostgresTimeSync implements TimeSync {
 
   @Override
   public String getPlots(Request req, Response res) {
-    //timesync/plot/:interpreter/:project_id/:packet
+    // timesync/plot/:interpreter/:project_id/:packet
     var interpreter = req.params(":interpreter");
     var project_id = req.params(":project_id");
     var packet = Integer.parseInt(req.params("packet"));
@@ -66,7 +66,7 @@ public class PostgresTimeSync implements TimeSync {
 
   @Override
   public String getVerticesForPlot(Request req, Response res) {
-    //timesync/vertex/:interpreter/:project_id/:plotid/:packet
+    // timesync/vertex/:interpreter/:project_id/:plotid/:packet
     var interpreter = req.params(":interpreter");
     var project_id = req.params(":project_id");
     var plotid = req.params(":plotid");
@@ -92,7 +92,7 @@ public class PostgresTimeSync implements TimeSync {
 
   @Override
   public String getVerticesForProject(Request req, Response res) {
-    //timesync/vertex/:project_id
+    // timesync/vertex/:project_id
     var project_id = req.params(":project_id");
 
     var sql = "SELECT * FROM get_plot_vertices_for_project(?)";
@@ -120,54 +120,54 @@ public class PostgresTimeSync implements TimeSync {
 
     var vertInfos = jsonInputs.get("vertInfo").getAsJsonArray();
 
-//    var project_id = jsonInputs.get("projectID").getAsInt();
-//    var interpreter = jsonInputs.get("userID").getAsInt();
-//    var plot_id = jsonInputs.get("plotID").getAsInt();
-//    var packetElement = jsonInputs.get("packetID");
-//    var packet = packetElement == null ? -1 : packetElement.getAsInt();
+    // var project_id = jsonInputs.get("projectID").getAsInt();
+    // var interpreter = jsonInputs.get("userID").getAsInt();
+    // var plot_id = jsonInputs.get("plotID").getAsInt();
+    // var packetElement = jsonInputs.get("packetID");
+    // var packet = packetElement == null ? -1 : packetElement.getAsInt();
 
-    var json = JsonUtils.mapJsonArray(vertInfos,
-            element -> {
-              var image_year = element.get("year").getAsInt();
-              var image_julday = element.get("julday").getAsInt();
-              var t = element.get("image_id");
-              var image_id = t == null ? "" : t.getAsString();
+    var json = JsonUtils.mapJsonArray(vertInfos, element -> {
+      var image_year = element.get("year").getAsInt();
+      var image_julday = element.get("julday").getAsInt();
+      var t = element.get("image_id");
+      var image_id = t == null ? "" : t.getAsString();
 
-              var landuse = element.get("landUse").getAsJsonObject();
-              var dominantLandUse = landuse.get("primary").getAsJsonObject();
-              var dominant_landuse = dominantLandUse.get("landUse").getAsString();
-              var dominant_landuse_notes = dominantLandUse.get("notes").getAsJsonObject().toString();
+      var landuse = element.get("landUse").getAsJsonObject();
+      var dominantLandUse = landuse.get("primary").getAsJsonObject();
+      var dominant_landuse = dominantLandUse.get("landUse").getAsString();
+      var dominant_landuse_notes = dominantLandUse.get("notes").getAsJsonObject().toString();
 
-              //TODO: should we keep secondary land use
-              //var secondaryLandUse = landuse.get("secondary").getAsJsonObject();
-              //var secondary_landuse = secondaryLandUse.get("landUse").getAsString();
-              //var secondary_landuse_notes = secondaryLandUse.get("notes").getAsJsonObject().toString();
+      // TODO: should we keep secondary land use
+      // var secondaryLandUse = landuse.get("secondary").getAsJsonObject();
+      // var secondary_landuse = secondaryLandUse.get("landUse").getAsString();
+      // var secondary_landuse_notes =
+      // secondaryLandUse.get("notes").getAsJsonObject().toString();
 
-              var dominantLandCover = element.get("landCover").getAsJsonObject();
-              var dominant_landcover = dominantLandCover.get("landCover").getAsString();
-              var dominant_landcover_notes = dominantLandCover.get("other").getAsJsonObject().toString();
+      var dominantLandCover = element.get("landCover").getAsJsonObject();
+      var dominant_landcover = dominantLandCover.get("landCover").getAsString();
+      var dominant_landcover_notes = dominantLandCover.get("other").getAsJsonObject().toString();
 
-              var changeProcess = element.get("changeProcess").getAsJsonObject();
-              var change_process = changeProcess.get("changeProcess").getAsString();
-              var change_process_notes = changeProcess.get("notes").getAsJsonObject().toString();
+      var changeProcess = element.get("changeProcess").getAsJsonObject();
+      var change_process = changeProcess.get("changeProcess").getAsString();
+      var change_process_notes = changeProcess.get("notes").getAsJsonObject().toString();
 
-              var obj = new JsonObject();
-              obj.addProperty("project_id", project_id);
-              obj.addProperty("plot_id", plot_id);
-              obj.addProperty("image_year", image_year);
-              obj.addProperty("image_julday", image_julday);
-              obj.addProperty("image_id", image_id);
-              obj.addProperty("dominant_landuse", dominant_landuse);
-              obj.addProperty("dominant_landuse_notes", dominant_landuse_notes);
-              obj.addProperty("dominant_landcover", dominant_landcover);
-              obj.addProperty("dominant_landcover_notes", dominant_landcover_notes);
-              obj.addProperty("change_process", change_process);
-              obj.addProperty("change_process_notes", change_process_notes);
-              obj.addProperty("interpreter", interpreter);
-              obj.addProperty("packet_id", packet);
+      var obj = new JsonObject();
+      obj.addProperty("project_id", project_id);
+      obj.addProperty("plot_id", plot_id);
+      obj.addProperty("image_year", image_year);
+      obj.addProperty("image_julday", image_julday);
+      obj.addProperty("image_id", image_id);
+      obj.addProperty("dominant_landuse", dominant_landuse);
+      obj.addProperty("dominant_landuse_notes", dominant_landuse_notes);
+      obj.addProperty("dominant_landcover", dominant_landcover);
+      obj.addProperty("dominant_landcover_notes", dominant_landcover_notes);
+      obj.addProperty("change_process", change_process);
+      obj.addProperty("change_process_notes", change_process_notes);
+      obj.addProperty("interpreter", interpreter);
+      obj.addProperty("packet_id", packet);
 
-              return obj;
-            });
+      return obj;
+    });
 
     var sql = "SELECT create_vertices(?,?,?,?,?::jsonb)";
 
@@ -202,7 +202,8 @@ public class PostgresTimeSync implements TimeSync {
   }
 
   private String saveCommentViaRequestBody(Request req, Response res) {
-    //TODO: take advantage of Postgres JSON function. Chanee the implementaiton to use JSON
+    // TODO: take advantage of Postgres JSON function. Chanee the implementaiton to
+    // use JSON
     // as input in the stored procedure to avoid all these extraction
     var jsonInputs = parseJson(req.body()).getAsJsonObject();
     var project_id = jsonInputs.get("projectID").getAsInt();
@@ -227,8 +228,8 @@ public class PostgresTimeSync implements TimeSync {
       pstmt.setString(5, comment);
       pstmt.setInt(6, is_complete);
       pstmt.setInt(7, is_example);
-      pstmt.setInt(8, 0); //not used
-      pstmt.setInt(9, 0); //not used
+      pstmt.setInt(8, 0); // not used
+      pstmt.setInt(9, 0); // not used
       var rs = pstmt.executeQuery();
 
       return "";
@@ -253,7 +254,7 @@ public class PostgresTimeSync implements TimeSync {
 
   @Override
   public String getComment(Request req, Response res) {
-    ///timesync//comment/:interpreter/:project_id/:plotid/:packet
+    /// timesync//comment/:interpreter/:project_id/:plotid/:packet
     var interpreter = req.params(":interpreter");
     var project_id = req.params(":project_id");
     var plotid = req.params(":plotid");
@@ -275,5 +276,15 @@ public class PostgresTimeSync implements TimeSync {
     } catch (Exception e) {
       return null;
     }
+  }
+
+  @Override
+  public String getImagePreference(Request req, Response res) {
+    return null;
+  }
+
+  @Override
+  public String updateImagePreference(Request req, Response res) {
+    return null;
   }
 }
