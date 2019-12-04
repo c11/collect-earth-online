@@ -125,12 +125,12 @@ public class JsonTimeSync implements TimeSync {
     }
 
     @Override
-    String getImagePreference(Request req, Response res) {
+    public String getImagePreference(Request req, Response res) {
         return null;
     }
 
     @Override
-    String updateImagePreference(Request req, Response res) {
+    public String updateImagePreference(Request req, Response res) {
         return null;
     }
 }
