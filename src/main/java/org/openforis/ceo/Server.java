@@ -258,6 +258,8 @@ public class Server implements SparkApplication {
         post("/timesync/vertex/save",                 timeSync::saveVertex);
         post("/timesync/comment/save",                timeSync::saveComment);
         get("/timesync/comment/:interpreter/:project_id/:plotid/:packet", timeSync::getComment);
+        get("/timesync/image-preference/:interpreter/:project_id/:plotid/:packet", timeSync::getImagePreference);
+        post("timesync/image-preference/save",        timeSync::updateImagePreference);
 
         // Routing Table: Page Not Found
         notFound(Views.pageNotFound(freemarker));

@@ -9,6 +9,7 @@ import spark.Request;
 import spark.Response;
 
 import static org.openforis.ceo.utils.DatabaseUtils.connect;
+import static org.openforis.ceo.utils.JsonUtils.filterJsonArray;
 import static org.openforis.ceo.utils.JsonUtils.parseJson;
 
 public class PostgresTimeSync implements TimeSync {
@@ -112,13 +113,16 @@ public class PostgresTimeSync implements TimeSync {
 
   private String saveVertexViaRequestBody(Request req, Response res) {
     var jsonInputs = parseJson(req.body()).getAsJsonObject();
-    var project_id = jsonInputs.get("projectID").getAsInt();
-    var interpreter = jsonInputs.get("userID").getAsInt();
-    var plot_id = jsonInputs.get("plotID").getAsInt();
-    var packetElement = jsonInputs.get("packetID");
+    var project_id = jsonInputs.get("projectId").getAsInt();
+    var interpreter = jsonInputs.get("userId").getAsInt();
+    var plot_id = jsonInputs.get("plotId").getAsInt();
+    var packetElement = jsonInputs.get("packet");
+//    var packet = packetElement == null ? -1 : packetElement.getAsInt();
     var packet = packetElement == null ? -1 : packetElement.getAsInt();
 
-    var vertInfos = jsonInputs.get("vertInfo").getAsJsonArray();
+    var vertInfosAll = jsonInputs.get("timeSync").getAsJsonArray();
+    var vertInfos = filterJsonArray(vertInfosAll,
+                                    vertex -> vertex.has("isVertex") && vertex.get("isVertex").getAsBoolean());
 
     // var project_id = jsonInputs.get("projectID").getAsInt();
     // var interpreter = jsonInputs.get("userID").getAsInt();
@@ -127,9 +131,9 @@ public class PostgresTimeSync implements TimeSync {
     // var packet = packetElement == null ? -1 : packetElement.getAsInt();
 
     var json = JsonUtils.mapJsonArray(vertInfos, element -> {
-      var image_year = element.get("year").getAsInt();
-      var image_julday = element.get("julday").getAsInt();
-      var t = element.get("image_id");
+      var image_year = element.get("image_year").getAsInt();
+      var image_julday = element.get("image_julday").getAsInt();
+      var t = element.get("iid");
       var image_id = t == null ? "" : t.getAsString();
 
       var landuse = element.get("landUse").getAsJsonObject();
@@ -163,8 +167,9 @@ public class PostgresTimeSync implements TimeSync {
       obj.addProperty("dominant_landcover_notes", dominant_landcover_notes);
       obj.addProperty("change_process", change_process);
       obj.addProperty("change_process_notes", change_process_notes);
-      obj.addProperty("interpreter", interpreter);
-      obj.addProperty("packet_id", packet);
+      obj.addProperty("user_id", interpreter);
+      var sqlPacket = packet==-1?null:packet;
+      obj.addProperty("packet_id", sqlPacket);
 
       return obj;
     });

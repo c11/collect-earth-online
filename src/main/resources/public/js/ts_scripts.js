@@ -351,7 +351,10 @@ function getData(sessionInfo, specIndex, activeRedSpecIndex, activeGreenSpecInde
 
     //load interpretation
     fetch(urls.vertices)
-        .then(res => res.json())
+        .then(res => {
+            console.log(res);
+            console.log(res.json());
+        })
         .then(tsdata => {
             console.log(tsdata);
 
@@ -2370,7 +2373,7 @@ function fillInForm() {
     }
     //fill in vertex form
     for (i = 0; i < len; i++) {
-        yearStart = vertInfo[i].year;
+        yearStart = vertInfo[i].image_year;
         $("#verticesFormTbl").append('<tr class="vertex"><td class="highlightIt"><span class="glyphicon glyphicon-search"></span></td><td>' + yearStart + '</td><td class="landUseInput formDrop lulc"></td><td class="landCoverInput formDrop lulc"></td></tr>');
         $(".landUseInput").eq(i).text(vertInfo[i].landUse.primary.landUse);
         $(".landCoverInput").eq(i).text(vertInfo[i].landCover.landCover);
@@ -2727,9 +2730,11 @@ function fetchUrlFromStore(chip_url) {
     const currentDate = new Date();
     currentDate.setDate(currentDate.getDate() - 1);
     const chipInfo = JSON.parse(localStorage.getItem(chip_url));
-    if (chipInfo && new Date(chipInfo.lastGatewayUpdate) > currentDate) {
-        return chipInfo.chip_url;
-    }
+    //TODO: restore these
+    //YANG: temporarily disable caching
+    // if (chipInfo && new Date(chipInfo.lastGatewayUpdate) > currentDate) {
+    //     return chipInfo.chip_url;
+    // }
     return '';
 }
 
@@ -2741,8 +2746,11 @@ function getImageChip(iid) {
     // return `${geeServer}/ts/image_chip/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}/${iid}/tc/255`;
 
     //on initial run, defaultUrl is always used and subsequent calls will use cached urls.
-    let defaultUrl = `${geeServer}/ts/image_chip/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}/${iid}/tc/255`;
-    let chipUrl = `${geeServer}/ts/image_chip_url/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}/${iid}/tc/255`;
+    // let defaultUrl = `${geeServer}/ts/image_chip/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}/${iid}/tc/255`;
+    // let chipUrl = `${geeServer}/ts/image_chip_url/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}/${iid}/tc/255`;
+    let defaultUrl = `${geeServer}/ts/image_chip/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}/${iid}/b543/255`;
+    let chipUrl = `${geeServer}/ts/image_chip_url/${sessionInfo.currentLocation.coordinates[0]}/${sessionInfo.currentLocation.coordinates[1]}/${iid}/b543/255`;
+
     let needFetch = true;
 
     // let resultUrl = chipUrl;

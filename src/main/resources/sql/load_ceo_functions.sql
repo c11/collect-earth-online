@@ -2426,34 +2426,44 @@ CREATE OR REPLACE FUNCTION get_plot_vertices(_user_id integer, _project_id integ
     change_process_notes      text
  ) AS $$
 
-    SELECT project_id,
-           plot_id,
-           user_id,
-           packet_id,
-           image_year,
-           image_julday,
-           dominant_landuse,
-           dominant_landuse_notes,
-           dominant_landcover,
-           dominant_landcover_notes,
-           change_process,
-           change_process_notes
-    FROM get_plot_vertices_for_project(_project_id)
-    WHERE plot_id   = _plot_id
-      AND user_id   = _user_id
-      AND packet_id = _packet_id
+BEGIN
+    RETURN QUERY
+    SELECT X.project_id,
+           X.plot_id,
+           X.user_id,
+           X.packet_id,
+           X.image_year,
+           X.image_julday,
+           X.dominant_landuse,
+           X.dominant_landuse_notes,
+           X.dominant_landcover,
+           X.dominant_landcover_notes,
+           X.change_process,
+           X.change_process_notes
+    FROM get_plot_vertices_for_project(_project_id) X
+    WHERE X.plot_id   = _plot_id
+      AND X.user_id   = _user_id
+      AND CASE WHEN _packet_id = -1 OR _packet_id IS NULL THEN X.packet_id is NULL ELSE X.packet_id = _packet_id END;
+END
 
-$$ LANGUAGE SQL;
+$$ LANGUAGE PLPGSQL;
 
 CREATE OR REPLACE FUNCTION create_vertices(_project_id integer, _plot_id integer, _user_id integer, _packet_id integer, _vertices jsonb)
  RETURNS void AS $$
-
+BEGIN
     -- Remove existing vertex
-    DELETE FROM vertex
-    WHERE project_rid = _project_id
-      AND plot_rid    = _plot_id
-      AND user_rid    = _user_id
-      AND packet_rid  = _packet_id;
+    IF _packet_id = -1 THEN       
+        DELETE FROM vertex
+        WHERE project_rid = _project_id
+        AND plot_rid    = _plot_id
+        AND user_rid    = _user_id;
+    ELSE
+        DELETE FROM vertex
+        WHERE project_rid = _project_id
+        AND plot_rid    = _plot_id
+        AND user_rid    = _user_id
+        AND packet_rid  = _packet_id;
+    END IF;
 
     -- Add new vertices
     INSERT INTO vertex (
@@ -2499,8 +2509,8 @@ CREATE OR REPLACE FUNCTION create_vertices(_project_id integer, _plot_id integer
         change_process            text,
         change_process_notes      text
     );
-
-$$ LANGUAGE SQL;
+END
+$$ LANGUAGE PLPGSQL;
 
 CREATE OR REPLACE FUNCTION get_image_preference(_user_id integer, _project_id integer, _packet_id integer, _plot_id integer)
  RETURNS TABLE (
