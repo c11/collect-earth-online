@@ -2,6 +2,52 @@
 --  READ EXTERNAL FILE FUNCTIONS
 --
 
+-- Archive project
+CREATE OR REPLACE FUNCTION archive_project(_project_uid integer)
+ RETURNS integer AS $$
+
+    UPDATE projects
+    SET availability = 'archived',
+        archived_date = Now()
+    WHERE project_uid = _project_uid
+    RETURNING _project_uid
+
+$$ LANGUAGE SQL;
+
+-- Add user plots for migration (with add_sample_values)
+CREATE OR REPLACE FUNCTION add_user_plots_migration(_plot_rid integer, _username text, _flagged boolean, _collection_start timestamp, _collection_time timestamp)
+ RETURNS integer AS $$
+
+    WITH user_id AS (
+        SELECT user_uid FROM users WHERE email = _username
+    ), guest_id AS (
+        SELECT user_uid FROM users WHERE email = 'guest'
+    )
+
+    INSERT INTO user_plots
+        (plot_rid, flagged, collection_start, collection_time, user_rid)
+    (SELECT _plot_rid,
+        _flagged,
+        _collection_start,
+        _collection_time,
+        (CASE WHEN user_id.user_uid IS NULL THEN guest_id.user_uid ELSE user_id.user_uid END)
+     FROM user_id, guest_id)
+    RETURNING user_plot_uid
+
+$$ LANGUAGE SQL;
+
+-- Add user samples for migration (with add_user_plots)
+CREATE OR REPLACE FUNCTION add_sample_values_migration(_user_plot_rid integer, _sample_rid integer, _value jsonb, _imagery_rid integer, _imagery_attributes jsonb)
+ RETURNS integer AS $$
+
+    INSERT INTO sample_values
+        (user_plot_rid, sample_rid, value, imagery_rid, imagery_attributes)
+    VALUES
+        ( _user_plot_rid, _sample_rid, _value, _imagery_rid, _imagery_attributes)
+    RETURNING sample_value_uid
+
+$$ LANGUAGE SQL;
+
 -- Select known columns from a shp or csv file
 CREATE OR REPLACE FUNCTION select_partial_table_by_name(_table_name text)
  RETURNS TABLE (
@@ -1385,18 +1431,6 @@ CREATE OR REPLACE FUNCTION close_project(_project_uid integer)
 
 $$ LANGUAGE SQL;
 
--- Archive project
-CREATE OR REPLACE FUNCTION archive_project(_project_uid integer)
- RETURNS integer AS $$
-
-    UPDATE projects
-    SET availability = 'archived',
-        archived_date = Now()
-    WHERE project_uid = _project_uid
-    RETURNING _project_uid
-
-$$ LANGUAGE SQL;
-
 --
 --  PLOT FUNCTIONS
 --
@@ -2261,40 +2295,6 @@ CREATE OR REPLACE FUNCTION add_institution_imagery_migration(_imagery_uid intege
 
 $$ LANGUAGE SQL;
 
--- Add user samples for migration (with add_user_plots)
-CREATE OR REPLACE FUNCTION add_sample_values_migration(_user_plot_rid integer, _sample_rid integer, _value jsonb, _imagery_rid integer, _imagery_attributes jsonb)
- RETURNS integer AS $$
-
-    INSERT INTO sample_values
-        (user_plot_rid, sample_rid, value, imagery_rid, imagery_attributes)
-    VALUES
-        ( _user_plot_rid, _sample_rid, _value, _imagery_rid, _imagery_attributes)
-    RETURNING sample_value_uid
-
-$$ LANGUAGE SQL;
-
--- Add user plots for migration (with add_sample_values)
-CREATE OR REPLACE FUNCTION add_user_plots_migration(_plot_rid integer, _username text, _flagged boolean, _collection_start timestamp, _collection_time timestamp)
- RETURNS integer AS $$
-
-    WITH user_id AS (
-        SELECT user_uid FROM users WHERE email = _username
-    ), guest_id AS (
-        SELECT user_uid FROM users WHERE email = 'guest'
-    )
-
-    INSERT INTO user_plots
-        (plot_rid, flagged, collection_start, collection_time, user_rid)
-    (SELECT _plot_rid,
-        _flagged,
-        _collection_start,
-        _collection_time,
-        (CASE WHEN user_id.user_uid IS NULL THEN guest_id.user_uid ELSE user_id.user_uid END)
-     FROM user_id, guest_id)
-    RETURNING user_plot_uid
-
-$$ LANGUAGE SQL;
-
 -- Add packet to a project
 -- Not every project needs a packet. If no packet is defined, there is no need to create a packet for that project.
 CREATE OR REPLACE FUNCTION add_packet(_project_id integer, _title text)
@@ -2426,44 +2426,33 @@ CREATE OR REPLACE FUNCTION get_plot_vertices(_user_id integer, _project_id integ
     change_process_notes      text
  ) AS $$
 
-BEGIN
-    RETURN QUERY
-    SELECT X.project_id,
-           X.plot_id,
-           X.user_id,
-           X.packet_id,
-           X.image_year,
-           X.image_julday,
-           X.dominant_landuse,
-           X.dominant_landuse_notes,
-           X.dominant_landcover,
-           X.dominant_landcover_notes,
-           X.change_process,
-           X.change_process_notes
-    FROM get_plot_vertices_for_project(_project_id) X
-    WHERE X.plot_id   = _plot_id
-      AND X.user_id   = _user_id
-      AND CASE WHEN _packet_id = -1 OR _packet_id IS NULL THEN X.packet_id is NULL ELSE X.packet_id = _packet_id END;
-END
+    SELECT project_id,
+           plot_id,
+           user_id,
+           packet_id,
+           image_year,
+           image_julday,
+           dominant_landuse,
+           dominant_landuse_notes,
+           dominant_landcover,
+           dominant_landcover_notes,
+           change_process,
+           change_process_notes
+    FROM get_plot_vertices_for_project(_project_id)
+    WHERE plot_id   = _plot_id
+      AND user_id   = _user_id
+      AND COALESCE(packet_id, -1) = coalesce(_packet_id, -1);
 
-$$ LANGUAGE PLPGSQL;
+$$ LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION create_vertices(_project_id integer, _plot_id integer, _user_id integer, _packet_id integer, _vertices jsonb)
  RETURNS void AS $$
-BEGIN
     -- Remove existing vertex
-    IF _packet_id = -1 THEN       
-        DELETE FROM vertex
-        WHERE project_rid = _project_id
-        AND plot_rid    = _plot_id
-        AND user_rid    = _user_id;
-    ELSE
-        DELETE FROM vertex
-        WHERE project_rid = _project_id
-        AND plot_rid    = _plot_id
-        AND user_rid    = _user_id
-        AND packet_rid  = _packet_id;
-    END IF;
+    DELETE FROM vertex
+    WHERE project_rid = _project_id
+    AND plot_rid    = _plot_id
+    AND user_rid    = _user_id
+    AND coalesce(packet_rid, -1)  = coalesce(_packet_id, -1);
 
     -- Add new vertices
     INSERT INTO vertex (
@@ -2509,8 +2498,8 @@ BEGIN
         change_process            text,
         change_process_notes      text
     );
-END
-$$ LANGUAGE PLPGSQL;
+
+$$ LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION get_image_preference(_user_id integer, _project_id integer, _packet_id integer, _plot_id integer)
  RETURNS TABLE (
