@@ -279,7 +279,8 @@ function extractInterpretation(tsdata, comment, isExample) {
         if (v.is_vertex) {
             //TODO: is shallow copying ok here.
             v.index = i;
-            vertInfo.push(_.pick(v, ['image_year', 'image_julday', 'index', 'landUse', 'landCover', 'changeProcess', 'isVertex']));
+            vertInfo.push(_.pick(v, ['image_year', 'image_julday', 'index', 'landuse', 'landcover', 'change_process', 'is_vertex']));
+            // vertInfo.push(_.pick(v, ['image_year', 'image_julday', 'index', 'landUse', 'landCover', 'changeProcess', 'isVertex']));
         }
     })
 
@@ -292,10 +293,10 @@ function extractInterpretation(tsdata, comment, isExample) {
         selectThese = [0, tsdata.length - 1];
         for (var i = 0; i < selectThese.length; i++) {
             vertInfo.push({
-                image_year: origData[selectThese[i]].image_year, image_julday: origData[selectThese[i]].image_julday, index: selectThese[i], iid: origData[selectThese[i]].iid, isVertex: true, landUse: {
+                image_year: origData[selectThese[i]].image_year, image_julday: origData[selectThese[i]].image_julday, index: selectThese[i], iid: origData[selectThese[i]].iid, is_vertex: true, landuse: {
                     primary: { landUse: "", notes: { wetland: false, mining: false, rowCrop: false, orchardTreeFarm: false, vineyardsOtherWoody: false } },
                     secondary: { landUse: "", notes: { wetland: false, mining: false, rowCrop: false, orchardTreeFarm: false, vineyardsOtherWoody: false } }
-                }, landCover: { landCover: "", other: { trees: false, shrubs: false, grassForbHerb: false, impervious: false, naturalBarren: false, snowIce: false, water: false } }, changeProcess: { changeProcess: "", notes: { natural: false, prescribed: false, sitePrepFire: false, airphotoOnly: false, clearcut: false, thinning: false, flooding: false, reserviorLakeFlux: false, wetlandDrainage: false } }
+                }, landcover: { landCover: "", other: { trees: false, shrubs: false, grassForbHerb: false, impervious: false, naturalBarren: false, snowIce: false, water: false } }, change_process: { changeProcess: "", notes: { natural: false, prescribed: false, sitePrepFire: false, airphotoOnly: false, clearcut: false, thinning: false, flooding: false, reserviorLakeFlux: false, wetlandDrainage: false } }
             })
         }
     }
@@ -367,6 +368,9 @@ function getData(sessionInfo, specIndex, activeRedSpecIndex, activeGreenSpecInde
             console.log(tsdata);
 
             //TODO: is it possible that there is no timeSync property in the data?
+            if (tsdata.length==0) {
+                throw("No interpretation found, fetching from GEE");
+            }
             processAnnualSpectralsFromDB(tsdata);
             extractInterpretation(tsdata, tsdata.comment === undefined ? "" : tsdata.comment, tsdata.isExample===undefined ? false : tsdata.isExample);
             updateUI();
@@ -564,9 +568,9 @@ function checkPlot(sessionInfo, vertInfo) {
     if (nVerts == 0 | sessionInfo.plotID == "") { return } //if it has never been clicked on before then leave, else check if it is a complete interpretation
     var total = 0;
     vertInfo.forEach(function (v) {
-        total = total + (v.changeProcess.changeProcess != "" ? 1 : 0);
-        total = total + (v.landUse.primary.landUse != "" ? 1 : 0);
-        total = total + (v.landCover.landCover != "" ? 1 : 0);
+        total = total + (v.change_process.changeProcess != "" ? 1 : 0);
+        total = total + (v.landuse.primary.landUse != "" ? 1 : 0);
+        total = total + (v.landcover.landCover != "" ? 1 : 0);
     });
 
     //find the li that we're working with if is hasn't be supplied (after clicking to a new )
@@ -1691,7 +1695,8 @@ function saveVertInfo(sessionInfo, vertInfo) {
     let timeSync = origData.map(d => {
         let dv = _.find(vertInfo, v => v.image_year === d.image_year && v.image_julday === d.image_julday)
         if (dv === undefined) return { ...d };
-        let info = _.pick(dv, ['landUse', 'landCover', 'changeProcess', 'isVertex']);
+        // let info = _.pick(dv, ['landUse', 'landCover', 'changeProcess', 'isVertex']);
+        let info = _.pick(dv, ['landuse', 'landcover', 'change_process', 'is_vertex']);
         return { ...d, ..._.cloneDeep(info) };
     })
 
@@ -1758,25 +1763,25 @@ $("#contextMenuList li").click(function () {
         if (thisTD.hasClass("changeProcessInput")) {
             if (thisTRindex + 1 >= vertInfo.length) { return }
             for (var i = thisTRindex + 1; i < vertInfo.length; i++) {
-                vertInfo[i].changeProcess = $.extend(true, {}, vertInfo[thisTRindex].changeProcess);
+                vertInfo[i].change_process = $.extend(true, {}, vertInfo[thisTRindex].change_process);
             }
         } else if (thisTD.hasClass("landUseInput")) {
             for (var i = thisTRindex; i < vertInfo.length; i++) {
-                vertInfo[i].landUse = $.extend(true, {}, vertInfo[thisTRindex - 1].landUse);
+                vertInfo[i].landuse = $.extend(true, {}, vertInfo[thisTRindex - 1].landuse);
             }
         } else if (thisTD.hasClass("landCoverInput")) {
             for (var i = thisTRindex; i < vertInfo.length; i++) {
-                vertInfo[i].landCover = $.extend(true, {}, vertInfo[thisTRindex - 1].landCover);
+                vertInfo[i].landcover = $.extend(true, {}, vertInfo[thisTRindex - 1].landcover);
             }
         }
     } else if (thisLiID == "copyPrev") {
         if (thisTD.hasClass("changeProcessInput")) {
             if (thisTRindex >= vertInfo.length) { return }
-            vertInfo[thisTRindex].changeProcess = $.extend(true, {}, vertInfo[thisTRindex - 1].changeProcess);
+            vertInfo[thisTRindex].change_process = $.extend(true, {}, vertInfo[thisTRindex - 1].change_process);
         } else if (thisTD.hasClass("landUseInput")) {
-            vertInfo[thisTRindex - 1].landUse = $.extend(true, {}, vertInfo[thisTRindex - 2].landUse);
+            vertInfo[thisTRindex - 1].landuse = $.extend(true, {}, vertInfo[thisTRindex - 2].landuse);
         } else if (thisTD.hasClass("landCoverInput")) {
-            vertInfo[thisTRindex - 1].landCover = $.extend(true, {}, vertInfo[thisTRindex - 2].landCover);
+            vertInfo[thisTRindex - 1].landcover = $.extend(true, {}, vertInfo[thisTRindex - 2].landcover);
         }
     }
 
@@ -1845,7 +1850,7 @@ $(document).on("click", ".changeProcessInput", function (e) {		//, .landUseInput
 
     dropInputLists(thisInput, "changeProcessDiv", -1, -1, 1);
     var thisOne = $("tr.segment .changeProcessInput").index(thisInput) + 1;
-    var selection = vertInfo[thisOne].changeProcess.changeProcess;
+    var selection = vertInfo[thisOne].change_process.changeProcess;
 
     appendCPnotes(selection);
     changeNoteIcon("#CPnotesList", thisOne, "changeProcess");
@@ -1883,9 +1888,9 @@ $(document).on("click", ".lulc", function (e) {
     highlightOn("vertex", thisOne);
 
     //change selected attributes to active
-    var LUselection = vertInfo[thisOne].landUse.primary.landUse;
-    var LUselectionSec = vertInfo[thisOne].landUse.secondary.landUse;
-    var LCselection = vertInfo[thisOne].landCover.landCover;
+    var LUselection = vertInfo[thisOne].landuse.primary.landUse;
+    var LUselectionSec = vertInfo[thisOne].landuse.secondary.landUse;
+    var LCselection = vertInfo[thisOne].landcover.landCover;
     appendLUnotes(LUselection, "primary");
     appendLUnotes(LUselectionSec, "secondary");
     appendLCnotes(LCselection);
@@ -2275,16 +2280,16 @@ function changeProcessDoneBtn() {
     var thisOne = $(".changeProcessInput").index($(".changeProcessInput.active")) + 1;
     var selection = $("td.changeProcessInput.active").text();
 
-    vertInfo[thisOne].changeProcess.changeProcess = selection;
-    vertInfo[thisOne].changeProcess.notes.natural = $("#natural").prop("checked");
-    vertInfo[thisOne].changeProcess.notes.prescribed = $("#prescribed").prop("checked");
-    vertInfo[thisOne].changeProcess.notes.sitePrepFire = $("#sitePrepFire").prop("checked");
-    vertInfo[thisOne].changeProcess.notes.airphotoOnly = $("#airphotoOnly").prop("checked");
-    vertInfo[thisOne].changeProcess.notes.clearcut = $("#clearcut").prop("checked");
-    vertInfo[thisOne].changeProcess.notes.thinning = $("#thinning").prop("checked");
-    vertInfo[thisOne].changeProcess.notes.flooding = $("#flooding").prop("checked");
-    vertInfo[thisOne].changeProcess.notes.reserviorLakeFlux = $("#reserviorLakeFlux").prop("checked");
-    vertInfo[thisOne].changeProcess.notes.wetlandDrainage = $("#wetlandDrainage").prop("checked");
+    vertInfo[thisOne].change_process.changeProcess = selection;
+    vertInfo[thisOne].change_process.notes.natural = $("#natural").prop("checked");
+    vertInfo[thisOne].change_process.notes.prescribed = $("#prescribed").prop("checked");
+    vertInfo[thisOne].change_process.notes.sitePrepFire = $("#sitePrepFire").prop("checked");
+    vertInfo[thisOne].change_process.notes.airphotoOnly = $("#airphotoOnly").prop("checked");
+    vertInfo[thisOne].change_process.notes.clearcut = $("#clearcut").prop("checked");
+    vertInfo[thisOne].change_process.notes.thinning = $("#thinning").prop("checked");
+    vertInfo[thisOne].change_process.notes.flooding = $("#flooding").prop("checked");
+    vertInfo[thisOne].change_process.notes.reserviorLakeFlux = $("#reserviorLakeFlux").prop("checked");
+    vertInfo[thisOne].change_process.notes.wetlandDrainage = $("#wetlandDrainage").prop("checked");
 }
 
 //land use
@@ -2298,22 +2303,22 @@ function landUseDoneBtn() {
     //fill in the lineInfo object
     var thisOne = $(".landUseInput").index($(".landUseInput.active"));
 
-    vertInfo[thisOne].landUse.primary.landUse = $("td.landUseInput.active").text();
+    vertInfo[thisOne].landuse.primary.landUse = $("td.landUseInput.active").text();
 
     var thisSelectedSecLU = $("#landUseListSec .selected")
-    vertInfo[thisOne].landUse.secondary.landUse = thisSelectedSecLU.text() //get the text from the selected class
+    vertInfo[thisOne].landuse.secondary.landUse = thisSelectedSecLU.text() //get the text from the selected class
     thisSelectedSecLU.removeClass("selected"); //then make sure to get rid of the selected class so it can be set dynamically
 
-    vertInfo[thisOne].landUse.primary.notes.wetland = $("#LUnotesList .wetland").prop("checked");
-    vertInfo[thisOne].landUse.primary.notes.mining = $("#LUnotesList .mining").prop("checked");
-    vertInfo[thisOne].landUse.primary.notes.rowCrop = $("#LUnotesList .rowCrop").prop("checked");
-    vertInfo[thisOne].landUse.primary.notes.orchardTreeFarm = $("#LUnotesList .orchardTreeFarm").prop("checked");
-    vertInfo[thisOne].landUse.primary.notes.vineyardsOtherWoody = $("#LUnotesList .vineyardsOtherWoody").prop("checked");
-    vertInfo[thisOne].landUse.secondary.notes.wetland = $("#LUnotesListSec .wetland").prop("checked");
-    vertInfo[thisOne].landUse.secondary.notes.mining = $("#LUnotesListSec .mining").prop("checked");
-    vertInfo[thisOne].landUse.secondary.notes.rowCrop = $("#LUnotesListSec .rowCrop").prop("checked");
-    vertInfo[thisOne].landUse.secondary.notes.orchardTreeFarm = $("#LUnotesListSec .orchardTreeFarm").prop("checked");
-    vertInfo[thisOne].landUse.secondary.notes.vineyardsOtherWoody = $("#LUnotesListSec .vineyardsOtherWoody").prop("checked");
+    vertInfo[thisOne].landuse.primary.notes.wetland = $("#LUnotesList .wetland").prop("checked");
+    vertInfo[thisOne].landuse.primary.notes.mining = $("#LUnotesList .mining").prop("checked");
+    vertInfo[thisOne].landuse.primary.notes.rowCrop = $("#LUnotesList .rowCrop").prop("checked");
+    vertInfo[thisOne].landuse.primary.notes.orchardTreeFarm = $("#LUnotesList .orchardTreeFarm").prop("checked");
+    vertInfo[thisOne].landuse.primary.notes.vineyardsOtherWoody = $("#LUnotesList .vineyardsOtherWoody").prop("checked");
+    vertInfo[thisOne].landuse.secondary.notes.wetland = $("#LUnotesListSec .wetland").prop("checked");
+    vertInfo[thisOne].landuse.secondary.notes.mining = $("#LUnotesListSec .mining").prop("checked");
+    vertInfo[thisOne].landuse.secondary.notes.rowCrop = $("#LUnotesListSec .rowCrop").prop("checked");
+    vertInfo[thisOne].landuse.secondary.notes.orchardTreeFarm = $("#LUnotesListSec .orchardTreeFarm").prop("checked");
+    vertInfo[thisOne].landuse.secondary.notes.vineyardsOtherWoody = $("#LUnotesListSec .vineyardsOtherWoody").prop("checked");
 }
 
 //land cover
@@ -2328,7 +2333,7 @@ function landCoverDoneBtn() {
     var thisOne = $(".landCoverInput").index($(".landCoverInput.active"));
     var selection = $("td.landCoverInput.active").text();
 
-    vertInfo[thisOne].landCover.landCover = selection;
+    vertInfo[thisOne].landcover.landCover = selection;
 
     //non checkbox
     //vertInfo[thisOne].landCover.other.trees = $("#trees").hasClass("selected")
@@ -2340,13 +2345,13 @@ function landCoverDoneBtn() {
     //vertInfo[thisOne].landCover.other.water = $("#water").hasClass("selected")
 
     //checkbox
-    vertInfo[thisOne].landCover.other.trees = $("#trees").prop("checked");
-    vertInfo[thisOne].landCover.other.shrubs = $("#shrubs").prop("checked");
-    vertInfo[thisOne].landCover.other.grassForbHerb = $("#grassForbHerb").prop("checked");
-    vertInfo[thisOne].landCover.other.impervious = $("#impervious").prop("checked");
-    vertInfo[thisOne].landCover.other.naturalBarren = $("#naturalBarren").prop("checked");
-    vertInfo[thisOne].landCover.other.snowIce = $("#snowIce").prop("checked");
-    vertInfo[thisOne].landCover.other.water = $("#water").prop("checked");
+    vertInfo[thisOne].landcover.other.trees = $("#trees").prop("checked");
+    vertInfo[thisOne].landcover.other.shrubs = $("#shrubs").prop("checked");
+    vertInfo[thisOne].landcover.other.grassForbHerb = $("#grassForbHerb").prop("checked");
+    vertInfo[thisOne].landcover.other.impervious = $("#impervious").prop("checked");
+    vertInfo[thisOne].landcover.other.naturalBarren = $("#naturalBarren").prop("checked");
+    vertInfo[thisOne].landcover.other.snowIce = $("#snowIce").prop("checked");
+    vertInfo[thisOne].landcover.other.water = $("#water").prop("checked");
 
 
     //fillInNotes("#LCnotesList .selected",thisOne,"trees","landCover");
@@ -2377,14 +2382,14 @@ function fillInForm() {
         var yearStart = vertInfo[i].image_year;
         var yearEnd = vertInfo[i + 1].image_year;
         $("#segmentsFormTbl").append('<tr class="segment"><td class="highlightIt"><span class="glyphicon glyphicon-search"></span></td><td>' + yearStart + '</td><td>' + yearEnd + '</td><td class="changeProcessInput formDrop"></td></tr>');
-        $(".changeProcessInput").eq(i).text(vertInfo[i + 1].changeProcess.changeProcess);
+        $(".changeProcessInput").eq(i).text(vertInfo[i + 1].change_process.changeProcess);
     }
     //fill in vertex form
     for (i = 0; i < len; i++) {
         yearStart = vertInfo[i].image_year;
         $("#verticesFormTbl").append('<tr class="vertex"><td class="highlightIt"><span class="glyphicon glyphicon-search"></span></td><td>' + yearStart + '</td><td class="landUseInput formDrop lulc"></td><td class="landCoverInput formDrop lulc"></td></tr>');
-        $(".landUseInput").eq(i).text(vertInfo[i].landUse.primary.landUse);
-        $(".landCoverInput").eq(i).text(vertInfo[i].landCover.landCover);
+        $(".landUseInput").eq(i).text(vertInfo[i].landuse.primary.landUse);
+        $(".landCoverInput").eq(i).text(vertInfo[i].landcover.landCover);
     }
 }
 
@@ -2403,8 +2408,8 @@ function updateSegmentForm(seriesIndex, addRemove) {
             image_julday: data.Values[seriesIndex].image_julday,
             index: seriesIndex, //fill in for the selected point
             iid: data.Values[seriesIndex].iid,
-            isVertex: true,
-            landUse: {
+            is_vertex: true,
+            landuse: {
                 primary: {
                     landUse: "",
                     notes: {
@@ -2426,7 +2431,7 @@ function updateSegmentForm(seriesIndex, addRemove) {
                     }
                 }
             },
-            landCover: {
+            landcover: {
                 landCover: "",
                 other: {
                     trees: false,
@@ -2438,7 +2443,7 @@ function updateSegmentForm(seriesIndex, addRemove) {
                     water: false
                 }
             },
-            changeProcess: {
+            change_process: {
                 changeProcess: "",
                 notes: {
                     natural: false,
@@ -2496,41 +2501,41 @@ function changeNoteIcon(notesList, thisOne, inputType) {
 
     switch (inputType) {
         case "landUse":
-            $("#LUnotesList .wetland").prop("checked", vertInfo[thisOne].landUse.primary.notes.wetland);
-            $("#LUnotesList .mining").prop("checked", vertInfo[thisOne].landUse.primary.notes.mining);
-            $("#LUnotesList .rowCrop").prop("checked", vertInfo[thisOne].landUse.primary.notes.rowCrop);
-            $("#LUnotesList .orchardTreeFarm").prop("checked", vertInfo[thisOne].landUse.primary.notes.orchardTreeFarm);
-            $("#LUnotesList .vineyardsOtherWoody").prop("checked", vertInfo[thisOne].landUse.primary.notes.vineyardsOtherWoody);
+            $("#LUnotesList .wetland").prop("checked", vertInfo[thisOne].landuse.primary.notes.wetland);
+            $("#LUnotesList .mining").prop("checked", vertInfo[thisOne].landuse.primary.notes.mining);
+            $("#LUnotesList .rowCrop").prop("checked", vertInfo[thisOne].landuse.primary.notes.rowCrop);
+            $("#LUnotesList .orchardTreeFarm").prop("checked", vertInfo[thisOne].landuse.primary.notes.orchardTreeFarm);
+            $("#LUnotesList .vineyardsOtherWoody").prop("checked", vertInfo[thisOne].landuse.primary.notes.vineyardsOtherWoody);
             //noteNull = vertInfo[thisOne].landUse.primary.notes[noteClass];
             break;
         case "landUseSec":
-            $("#LUnotesListSec .wetland").prop("checked", vertInfo[thisOne].landUse.secondary.notes.wetland);
-            $("#LUnotesListSec .mining").prop("checked", vertInfo[thisOne].landUse.secondary.notes.mining);
-            $("#LUnotesListSec .rowCrop").prop("checked", vertInfo[thisOne].landUse.secondary.notes.rowCrop);
-            $("#LUnotesListSec .orchardTreeFarm").prop("checked", vertInfo[thisOne].landUse.secondary.notes.orchardTreeFarm);
-            $("#LUnotesListSec .vineyardsOtherWoody").prop("checked", vertInfo[thisOne].landUse.secondary.notes.vineyardsOtherWoody);
+            $("#LUnotesListSec .wetland").prop("checked", vertInfo[thisOne].landuse.secondary.notes.wetland);
+            $("#LUnotesListSec .mining").prop("checked", vertInfo[thisOne].landuse.secondary.notes.mining);
+            $("#LUnotesListSec .rowCrop").prop("checked", vertInfo[thisOne].landuse.secondary.notes.rowCrop);
+            $("#LUnotesListSec .orchardTreeFarm").prop("checked", vertInfo[thisOne].landuse.secondary.notes.orchardTreeFarm);
+            $("#LUnotesListSec .vineyardsOtherWoody").prop("checked", vertInfo[thisOne].landuse.secondary.notes.vineyardsOtherWoody);
             //noteNull = vertInfo[thisOne].landUse.primary.notes[noteClass];
             break;
         case "landCover":
-            $("#trees").prop("checked", vertInfo[thisOne].landCover.other.trees);
-            $("#shrubs").prop("checked", vertInfo[thisOne].landCover.other.shrubs);
-            $("#grassForbHerb").prop("checked", vertInfo[thisOne].landCover.other.grassForbHerb);
-            $("#impervious").prop("checked", vertInfo[thisOne].landCover.other.impervious);
-            $("#naturalBarren").prop("checked", vertInfo[thisOne].landCover.other.naturalBarren);
-            $("#snowIce").prop("checked", vertInfo[thisOne].landCover.other.snowIce);
-            $("#water").prop("checked", vertInfo[thisOne].landCover.other.water);
+            $("#trees").prop("checked", vertInfo[thisOne].landcover.other.trees);
+            $("#shrubs").prop("checked", vertInfo[thisOne].landcover.other.shrubs);
+            $("#grassForbHerb").prop("checked", vertInfo[thisOne].landcover.other.grassForbHerb);
+            $("#impervious").prop("checked", vertInfo[thisOne].landcover.other.impervious);
+            $("#naturalBarren").prop("checked", vertInfo[thisOne].landcover.other.naturalBarren);
+            $("#snowIce").prop("checked", vertInfo[thisOne].landcover.other.snowIce);
+            $("#water").prop("checked", vertInfo[thisOne].landcover.other.water);
             //noteNull = vertInfo[thisOne].landCover.other[noteClass];
             break;
         case "changeProcess":
-            $("#natural").prop("checked", vertInfo[thisOne].changeProcess.notes.natural);
-            $("#prescribed").prop("checked", vertInfo[thisOne].changeProcess.notes.prescribed);
-            $("#sitePrepFire").prop("checked", vertInfo[thisOne].changeProcess.notes.sitePrepFire);
-            $("#airphotoOnly").prop("checked", vertInfo[thisOne].changeProcess.notes.airphotoOnly);
-            $("#clearcut").prop("checked", vertInfo[thisOne].changeProcess.notes.clearcut);
-            $("#thinning").prop("checked", vertInfo[thisOne].changeProcess.notes.thinning);
-            $("#flooding").prop("checked", vertInfo[thisOne].changeProcess.notes.flooding);
-            $("#reserviorLakeFlux").prop("checked", vertInfo[thisOne].changeProcess.notes.reserviorLakeFlux);
-            $("#wetlandDrainage").prop("checked", vertInfo[thisOne].changeProcess.notes.wetlandDrainage);
+            $("#natural").prop("checked", vertInfo[thisOne].change_process.notes.natural);
+            $("#prescribed").prop("checked", vertInfo[thisOne].change_process.notes.prescribed);
+            $("#sitePrepFire").prop("checked", vertInfo[thisOne].change_process.notes.sitePrepFire);
+            $("#airphotoOnly").prop("checked", vertInfo[thisOne].change_process.notes.airphotoOnly);
+            $("#clearcut").prop("checked", vertInfo[thisOne].change_process.notes.clearcut);
+            $("#thinning").prop("checked", vertInfo[thisOne].change_process.notes.thinning);
+            $("#flooding").prop("checked", vertInfo[thisOne].change_process.notes.flooding);
+            $("#reserviorLakeFlux").prop("checked", vertInfo[thisOne].change_process.notes.reserviorLakeFlux);
+            $("#wetlandDrainage").prop("checked", vertInfo[thisOne].change_process.notes.wetlandDrainage);
             //noteNull = vertInfo[thisOne].changeProcess.notes[noteClass];
             break;
     }
