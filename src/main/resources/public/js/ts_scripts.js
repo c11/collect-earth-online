@@ -371,6 +371,16 @@ function getData(sessionInfo, specIndex, activeRedSpecIndex, activeGreenSpecInde
             if (tsdata.length==0) {
                 throw("No interpretation found, fetching from GEE");
             }
+
+            //parse nested json object
+            tsdata.forEach(v => {
+                if (v.is_vertex) {
+                    v.landuse = JSON.parse(v.landuse.value);
+                    v.landcover = JSON.parse(v.landcover.value);
+                    v.change_process = JSON.parse(v.change_process.value);
+                }
+            });
+
             processAnnualSpectralsFromDB(tsdata);
             extractInterpretation(tsdata, tsdata.comment === undefined ? "" : tsdata.comment, tsdata.isExample===undefined ? false : tsdata.isExample);
             updateUI();
