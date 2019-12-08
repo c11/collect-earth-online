@@ -156,9 +156,9 @@ public class PostgresTimeSync implements TimeSync {
 
       if (element.has("landuse")) {
         var landuse = element.get("landuse").getAsJsonObject();
-        var dominantLandUse = landuse.get("primary").getAsJsonObject();
-        var dominant_landuse = dominantLandUse.get("landUse").getAsString();
-        var dominant_landuse_notes = dominantLandUse.get("notes").getAsJsonObject().toString();
+//        var dominantLandUse = landuse.get("primary").getAsJsonObject();
+//        var dominant_landuse = dominantLandUse.get("landUse").getAsString();
+//        var dominant_landuse_notes = dominantLandUse.get("notes").getAsJsonObject().toString();
 
         // TODO: should we keep secondary land use
         // var secondaryLandUse = landuse.get("secondary").getAsJsonObject();
@@ -167,20 +167,20 @@ public class PostgresTimeSync implements TimeSync {
         // secondaryLandUse.get("notes").getAsJsonObject().toString();
 
         var dominantLandCover = element.get("landcover").getAsJsonObject();
-        var dominant_landcover = dominantLandCover.get("landCover").getAsString();
-        var dominant_landcover_notes = dominantLandCover.get("other").getAsJsonObject().toString();
+//        var dominant_landcover = dominantLandCover.get("landCover").getAsString();
+//        var dominant_landcover_notes = dominantLandCover.get("other").getAsJsonObject().toString();
 
         var changeProcess = element.get("change_process").getAsJsonObject();
-        var change_process = changeProcess.get("changeProcess").getAsString();
-        var change_process_notes = changeProcess.get("notes").getAsJsonObject().toString();
+//        var change_process = changeProcess.get("changeProcess").getAsString();
+//        var change_process_notes = changeProcess.get("notes").getAsJsonObject().toString();
 
         obj.addProperty("is_vertex", true);
-        obj.addProperty("dominant_landuse", dominant_landuse);
-        obj.addProperty("dominant_landuse_notes", dominant_landuse_notes);
-        obj.addProperty("dominant_landcover", dominant_landcover);
-        obj.addProperty("dominant_landcover_notes", dominant_landcover_notes);
-        obj.addProperty("change_process0", change_process);
-        obj.addProperty("change_process_notes", change_process_notes);
+//        obj.addProperty("dominant_landuse", dominant_landuse);
+//        obj.addProperty("dominant_landuse_notes", dominant_landuse_notes);
+//        obj.addProperty("dominant_landcover", dominant_landcover);
+//        obj.addProperty("dominant_landcover_notes", dominant_landcover_notes);
+//        obj.addProperty("change_process0", change_process);
+//        obj.addProperty("change_process_notes", change_process_notes);
 
         obj.add("landuse", landuse);
         obj.add("landcover", dominantLandCover);
@@ -188,12 +188,12 @@ public class PostgresTimeSync implements TimeSync {
       }
       else {
         obj.addProperty("is_vertex", false);
-        obj.addProperty("dominant_landuse", "");
-        obj.addProperty("dominant_landuse_notes", "");
-        obj.addProperty("dominant_landcover", "");
-        obj.addProperty("dominant_landcover_notes", "");
-        obj.addProperty("change_process0", "");
-        obj.addProperty("change_process_notes", "");
+//        obj.addProperty("dominant_landuse", "");
+//        obj.addProperty("dominant_landuse_notes", "");
+//        obj.addProperty("dominant_landcover", "");
+//        obj.addProperty("dominant_landcover_notes", "");
+//        obj.addProperty("change_process0", "");
+//        obj.addProperty("change_process_notes", "");
 
         obj.add("landuse", null);
         obj.add("landcover", null);
