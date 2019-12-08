@@ -148,8 +148,8 @@ var osuServer = 'https://timesync.forestry.oregonstate.edu/_ts3';
 
 /**
  * FIXME: disect this funtion into fuction for each url.
- * @param {*} sessionInfo 
- * @param {*} year 
+ * @param {*} sessionInfo
+ * @param {*} year
  */
 function getUrls(sessionInfo, year) {
     var urls = {
@@ -174,10 +174,10 @@ function getUrls(sessionInfo, year) {
 /**
  * process annual spectral data with or without interpretation
  * NOTE: this is not a pure function.
- * 
+ *
  * called by getData()
- * 
- * @param {*} tsdata 
+ *
+ * @param {*} tsdata
  */
 function processAnnualSpectrals(tsdata) {
     //reset global variables
@@ -228,10 +228,20 @@ function processAnnualSpectrals(tsdata) {
 }
 
 /**
+ * parse spectral data retrieved from database
+ *
+ *
+ * @param tsdata
+ */
+function processAnnualSpectralsFromDB(tsdata) {
+    processAnnualSpectrals(tsdata.map(v => JSON.parse(v.reflectance.value)));
+}
+
+/**
  * parse all spectral data
- * 
+ *
  * //FIXME: improve efficienc in to avoid unnecessary loop.
- * @param {*} dat 
+ * @param {*} dat
  */
 function processAllSpectrals(dat) {
     allData = { "Values": [] };
@@ -239,7 +249,7 @@ function processAllSpectrals(dat) {
         // allData.Values.push(parseSpectralData(dat, i));
         allData.Values.push({ ...dat[i] });
     });
-    //make sure that all of the urls have been added to "allData" before getting the plot interps and plotting the points 
+    //make sure that all of the urls have been added to "allData" before getting the plot interps and plotting the points
     // - need "selectThese" to be determined first - any other way and asynchronous loading will mess it up
     allData = calcIndices(allData); //reset global - calculate the spectral indices
     allDataRGBcolor = scaledRGB(allData, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, allData.Values.length); //reset global - calculate the rbg color
@@ -252,11 +262,12 @@ function processAllSpectrals(dat) {
     plotInt(true);
     $("#btnPoints").attr('disabled', false); //reenable all plots button
 }
+
 /**
  * extract previous interpretation
  * NOTE: this is not a pure function.
- * 
- * @param {*} tsdata 
+ *
+ * @param {*} tsdata
  */
 function extractInterpretation(tsdata, comment, isExample) {
     vertInfo = [];
@@ -265,7 +276,7 @@ function extractInterpretation(tsdata, comment, isExample) {
     isExample = isExample; //tsdata.isExample;
 
     tsdata.forEach((v, i) => {
-        if (v.isVertex) {
+        if (v.is_vertex) {
             //TODO: is shallow copying ok here.
             v.index = i;
             vertInfo.push(_.pick(v, ['image_year', 'image_julday', 'index', 'landUse', 'landCover', 'changeProcess', 'isVertex']));
@@ -313,10 +324,10 @@ function updateUI() {
     appendChips("annual", selectThese); //append the chip div/canvas/img set
     //once the imgs have loaded make the chip info and draw the img to the canvas and display the time-lapse feature
     $("#img-gallery").imagesLoaded(function () {
-        //makeChipInfo("json", origData); 
-        //chip info array gets set in "appendChips" 
-        //gets filled out here because we have to wait 
-        //until the imgs have loaded to get their height 
+        //makeChipInfo("json", origData);
+        //chip info array gets set in "appendChips"
+        //gets filled out here because we have to wait
+        //until the imgs have loaded to get their height
         //(used when chip strip is the src - not needed when chips are singles)
         drawAllChips("annual");	//draw the imgs to the canvas
         toggleSpinner(false);
@@ -324,10 +335,10 @@ function updateUI() {
 }
 
 /**
- * Previous implementation in a hierachical approach: 
+ * Previous implementation in a hierachical approach:
  *  load annual spectral data -> load all spectral data -> load interpretation -> load comments
  * Each of the steps above requires successful execution of the previous step.
- *  
+ *
  * In the new implementation, it is restructed as:
  *  - load interpretation and selected annual image selection
  *  - if there is no interpretation saved
@@ -338,12 +349,12 @@ function updateUI() {
  *      + populate image chip with previously selected image id
  *      + update interface with existing interpretation
  *  - load all spectral data
- * 
- * @param {*} sessionInfo 
- * @param {*} specIndex 
- * @param {*} activeRedSpecIndex 
- * @param {*} activeGreenSpecIndex 
- * @param {*} activeBlueSpecIndex 
+ *
+ * @param {*} sessionInfo
+ * @param {*} specIndex
+ * @param {*} activeRedSpecIndex
+ * @param {*} activeGreenSpecIndex
+ * @param {*} activeBlueSpecIndex
  * @param {*} ylabel
  */
 function getData(sessionInfo, specIndex, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, ylabel) {
@@ -351,16 +362,13 @@ function getData(sessionInfo, specIndex, activeRedSpecIndex, activeGreenSpecInde
 
     //load interpretation
     fetch(urls.vertices)
-        .then(res => {
-            console.log(res);
-            console.log(res.json());
-        })
+        .then(res => res.json())
         .then(tsdata => {
             console.log(tsdata);
 
             //TODO: is it possible that there is no timeSync property in the data?
-            processAnnualSpectrals(tsdata.timeSync);
-            extractInterpretation(tsdata.timeSync, tsdata.comment === undefined ? "" : tsdata.comment, tsdata.isExample);
+            processAnnualSpectralsFromDB(tsdata);
+            extractInterpretation(tsdata, tsdata.comment === undefined ? "" : tsdata.comment, tsdata.isExample===undefined ? false : tsdata.isExample);
             updateUI();
             //get all spectral data
             //update ui
@@ -393,8 +401,8 @@ function getData(sessionInfo, specIndex, activeRedSpecIndex, activeGreenSpecInde
 
 /**
  * Populate the project list when #projectList element finishes loading
- * 
- * @param {*} sessionInfo 
+ *
+ * @param {*} sessionInfo
  */
 function addProjectData(sessionInfo) {
     if (tsDashMessage !== undefined) {
@@ -431,9 +439,9 @@ function addProjectData(sessionInfo) {
 
 /**
  * cache plot data from GEE
- * 
+ *
  * TODO: which mechanism should be used, localStorage or indexedDB?
- * 
+ *
  */
 // var cacheWorker = new Worker('/js/ts_webworker.js');
 // function preCache() {
