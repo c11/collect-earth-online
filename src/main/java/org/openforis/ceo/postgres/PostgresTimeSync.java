@@ -157,7 +157,7 @@ public class PostgresTimeSync implements TimeSync {
       if (element.has("landuse")) {
         var landuse = element.get("landuse").getAsJsonObject();
         var dominantLandUse = landuse.get("primary").getAsJsonObject();
-        var dominant_landuse = dominantLandUse.get("landuse").getAsString();
+        var dominant_landuse = dominantLandUse.get("landUse").getAsString();
         var dominant_landuse_notes = dominantLandUse.get("notes").getAsJsonObject().toString();
 
         // TODO: should we keep secondary land use
@@ -167,7 +167,7 @@ public class PostgresTimeSync implements TimeSync {
         // secondaryLandUse.get("notes").getAsJsonObject().toString();
 
         var dominantLandCover = element.get("landcover").getAsJsonObject();
-        var dominant_landcover = dominantLandCover.get("landcover").getAsString();
+        var dominant_landcover = dominantLandCover.get("landCover").getAsString();
         var dominant_landcover_notes = dominantLandCover.get("other").getAsJsonObject().toString();
 
         var changeProcess = element.get("change_process").getAsJsonObject();
