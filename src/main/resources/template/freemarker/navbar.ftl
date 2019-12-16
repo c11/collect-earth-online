@@ -22,11 +22,11 @@
                 <#list ["Account", "Timesync"] as url>
                     <#if navlink == "url">
                         <li class="nav-item active">
-                            <a class="nav-link" href="${root}/${url?lower_case}/${userid}">${url}</a>
+                            <a class="nav-link" href="${root}/${url?lower_case}?userId=${userid}">${url}</a>
                         </li>
                     <#else>
                         <li class="nav-item">
-                            <a class="nav-link" href="${root}/${url?lower_case}/${userid}">${url}</a>
+                            <a class="nav-link" href="${root}/${url?lower_case}?userId=${userid}">${url}</a>
                         </li>
                     </#if>
                 </#list>

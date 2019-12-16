@@ -28,7 +28,7 @@ public class PostgresInstitutions implements Institutions {
         final var institutionId =
             qInstitutionId != null ? Integer.parseInt(qInstitutionId)
             : jInstitutionId != null ? Integer.parseInt(jInstitutionId)
-                : 0;
+            : 0;
 
         try (var conn = connect();
              var pstmt = conn.prepareStatement("SELECT * FROM is_institution_user_admin(?, ?)")) {

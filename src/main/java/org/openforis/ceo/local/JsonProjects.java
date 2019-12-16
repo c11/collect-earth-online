@@ -77,7 +77,7 @@ public class JsonProjects implements Projects {
         final var projectId =
             qProjectId != null ? qProjectId
             : jProjectId != null ? jProjectId
-                : "0";
+            : "0";
 
         final var project = singleProjectJson(projectId);
         final var institutionRoles = (new JsonUsers()).getInstitutionRoles(userId);
@@ -120,33 +120,33 @@ public class JsonProjects implements Projects {
         var projects = elementToArray(readJsonFile("project-list.json"));
 
         var institutionRoles = (new JsonUsers()).getInstitutionRoles(intUserId);
-            var filteredProjects = toStream(projects)
-                    .filter(project -> project.get("archived").getAsBoolean() == false)
-                    .filter(project -> {
-                        var role = institutionRoles.getOrDefault(project.get("institution").getAsInt(), "");
-                        var privacyLevel = project.get("privacyLevel").getAsString();
-                        var availability = project.get("availability").getAsString();
+        var filteredProjects = toStream(projects)
+            .filter(project -> project.get("archived").getAsBoolean() == false)
+            .filter(project -> {
+                var role = institutionRoles.getOrDefault(project.get("institution").getAsInt(), "");
+                var privacyLevel = project.get("privacyLevel").getAsString();
+                var availability = project.get("availability").getAsString();
                 return canSeeProject(role, privacyLevel, availability, intUserId);
-                    })
-                    .map(project -> {
-                        var role = institutionRoles.getOrDefault(project.get("institution").getAsInt(), "");
-                        if (role.equals("admin")) {
-                            project.addProperty("editable", true);
-                        } else {
-                            project.addProperty("editable", false);
-                        }
-                        project.addProperty("validBoundary", true);
-                        return project;
-                    });
+            })
+            .map(project -> {
+                var role = institutionRoles.getOrDefault(project.get("institution").getAsInt(), "");
+                if (role.equals("admin")) {
+                    project.addProperty("editable", true);
+                } else {
+                    project.addProperty("editable", false);
+                }
+                project.addProperty("validBoundary", true);
+                return project;
+            });
         if (institutionId.equals("")) {
-                return filteredProjects.collect(intoJsonArray).toString();
-            } else {
-                return filteredProjects
-                        .filter(project -> project.get("institution").getAsString().equals(institutionId))
-                        .collect(intoJsonArray)
-                        .toString();
-            }
+            return filteredProjects.collect(intoJsonArray).toString();
+        } else {
+            return filteredProjects
+                    .filter(project -> project.get("institution").getAsString().equals(institutionId))
+                    .collect(intoJsonArray)
+                    .toString();
         }
+    }
 
     private static JsonObject singleProjectJson(String projectId) {
         var projects = elementToArray(readJsonFile("project-list.json"));
@@ -929,86 +929,86 @@ public class JsonProjects implements Projects {
         if (getOrZero(newProjectData, "projectTemplate").getAsInt() > 0
             && newProjectData.get("useTemplatePlots").getAsBoolean()) {
 
-                    var templateID = newProjectData.get("projectTemplate").getAsString();
-                    var templateProject = singleProjectJson(templateID);
-                    // Strip plots and samples of user data
-                    var plots = elementToArray(readJsonFile("plot-data-" + templateID + ".json"));
-                    var newPlots = toStream(plots)
-                            .map(plot -> {
-                                var newSamples = toStream(plot.get("samples").getAsJsonArray())
-                                    .map(sample -> {
-                                        sample.remove("value");
-                                        sample.remove("userImage");
-                                        return sample;
-                                    })
-                                    .collect(intoJsonArray);
-
-                                plot.remove("collectionTime");
-                                plot.remove("confidence");
-                                plot.remove("collectionStart");
-                                plot.add("user", null);
-                                plot.addProperty("flagged", false);
-                                plot.addProperty("analyses", 0);
-                                plot.add("samples", newSamples);
-                                return plot;
+            var templateID = newProjectData.get("projectTemplate").getAsString();
+            var templateProject = singleProjectJson(templateID);
+            // Strip plots and samples of user data
+            var plots = elementToArray(readJsonFile("plot-data-" + templateID + ".json"));
+            var newPlots = toStream(plots)
+                    .map(plot -> {
+                        var newSamples = toStream(plot.get("samples").getAsJsonArray())
+                            .map(sample -> {
+                                sample.remove("value");
+                                sample.remove("userImage");
+                                return sample;
                             })
                             .collect(intoJsonArray);
-                    // write new plot data to file
-                    writeJsonFile("plot-data-" + newProjectId + ".json", newPlots);
 
-                    // Update numPlots and samplesPerPlot to match the numbers that were generated
-                    newProjectData.remove("lonMin");
-                    newProjectData.remove("latMin");
-                    newProjectData.remove("lonMax");
-                    newProjectData.remove("latMax");
-                    newProjectData.add("plotDistribution", templateProject.get("plotDistribution"));
-                    newProjectData.add("numPlots",templateProject.get("numPlots"));
-                    newProjectData.add("plotSpacing", templateProject.get("plotSpacing"));
-                    newProjectData.add("plotShape", templateProject.get("plotShape"));
-                    newProjectData.add("plotSize", templateProject.get("plotSize"));
-                    newProjectData.add("sampleDistribution", templateProject.get("sampleDistribution"));
-                    newProjectData.add("samplesPerPlot", getOrZero(templateProject, "samplesPerPlot"));
-                    newProjectData.add("sampleResolution", templateProject.get("sampleResolution"));
-                    newProjectData.add("boundary", templateProject.get("boundary"));
-                    newProjectData.addProperty("numPlots", newPlots.size());
-                    newProjectData.addProperty("samplesPerPlot", newPlots.get(0).getAsJsonObject().getAsJsonArray("samples").size());
+                        plot.remove("collectionTime");
+                        plot.remove("confidence");
+                        plot.remove("collectionStart");
+                        plot.add("user", null);
+                        plot.addProperty("flagged", false);
+                        plot.addProperty("analyses", 0);
+                        plot.add("samples", newSamples);
+                        return plot;
+                    })
+                    .collect(intoJsonArray);
+            // write new plot data to file
+            writeJsonFile("plot-data-" + newProjectId + ".json", newPlots);
 
-                    newProjectData.add("plots-csv", templateProject.has("csv")
-                                                    ? templateProject.get("csv")
-                                                    : templateProject.get("plots-csv"));
-                    newProjectData.add("samples-csv", templateProject.get("samples-csv"));
-                    newProjectData.add("plots-shp", templateProject.get("plots-shp"));
-                    newProjectData.add("samples-shp", templateProject.get("samples-shp"));
+            // Update numPlots and samplesPerPlot to match the numbers that were generated
+            newProjectData.remove("lonMin");
+            newProjectData.remove("latMin");
+            newProjectData.remove("lonMax");
+            newProjectData.remove("latMax");
+            newProjectData.add("plotDistribution", templateProject.get("plotDistribution"));
+            newProjectData.add("numPlots",templateProject.get("numPlots"));
+            newProjectData.add("plotSpacing", templateProject.get("plotSpacing"));
+            newProjectData.add("plotShape", templateProject.get("plotShape"));
+            newProjectData.add("plotSize", templateProject.get("plotSize"));
+            newProjectData.add("sampleDistribution", templateProject.get("sampleDistribution"));
+            newProjectData.add("samplesPerPlot", getOrZero(templateProject, "samplesPerPlot"));
+            newProjectData.add("sampleResolution", templateProject.get("sampleResolution"));
+            newProjectData.add("boundary", templateProject.get("boundary"));
+            newProjectData.addProperty("numPlots", newPlots.size());
+            newProjectData.addProperty("samplesPerPlot", newPlots.get(0).getAsJsonObject().getAsJsonArray("samples").size());
 
-                    // Copy uploaded files
-                    if (newProjectData.get("plotDistribution").getAsString().equals("csv")) {
-                        final var csvFile = templateProject.has("csv")
-                                ? templateProject.get("csv").getAsString()
-                                : templateProject.get("plots-csv").getAsString();
-                        copyFile(expandResourcePath("/csv"),
-                                csvFile,
-                                "project-" + newProjectId + "-plots.csv");
-                    } else if (newProjectData.get("plotDistribution").getAsString().equals("shp")) {
-                        // Only the json file is used once uploaded
-                        copyFile(expandResourcePath("/shp"),
-                                "project-" + templateID + "-plots/project-" + templateID + "-plots.json",
-                                "project-" + newProjectId + "-plots/project-" + newProjectId + "-plots.json");
-                    }
+            newProjectData.add("plots-csv", templateProject.has("csv")
+                                            ? templateProject.get("csv")
+                                            : templateProject.get("plots-csv"));
+            newProjectData.add("samples-csv", templateProject.get("samples-csv"));
+            newProjectData.add("plots-shp", templateProject.get("plots-shp"));
+            newProjectData.add("samples-shp", templateProject.get("samples-shp"));
 
-                    if (newProjectData.get("sampleDistribution").getAsString().equals("csv")) {
-                        copyFile(expandResourcePath("/csv"),
-                                templateProject.get("samples-csv").getAsString(),
-                                "project-" + newProjectId + "-samples.csv");
-                    } else if (newProjectData.get("sampleDistribution").getAsString().equals("shp")) {
-                        copyFile(expandResourcePath("/shp"),
-                                "project-" + templateID + "-samples/project-" + templateID + "-samples.json",
-                                "project-" + newProjectId + "-samples/project-" + newProjectId + "-samples.json");
-                    }
+            // Copy uploaded files
+            if (newProjectData.get("plotDistribution").getAsString().equals("csv")) {
+                final var csvFile = templateProject.has("csv")
+                        ? templateProject.get("csv").getAsString()
+                        : templateProject.get("plots-csv").getAsString();
+                copyFile(expandResourcePath("/csv"),
+                        csvFile,
+                        "project-" + newProjectId + "-plots.csv");
+            } else if (newProjectData.get("plotDistribution").getAsString().equals("shp")) {
+                // Only the json file is used once uploaded
+                copyFile(expandResourcePath("/shp"),
+                        "project-" + templateID + "-plots/project-" + templateID + "-plots.json",
+                        "project-" + newProjectId + "-plots/project-" + newProjectId + "-plots.json");
+            }
 
-                    // create TimeSync file for the project timesync-data-<id>.json file
-                    writeJsonFile("timesync-data-" + newProjectId + ".json", new JsonArray());
+            if (newProjectData.get("sampleDistribution").getAsString().equals("csv")) {
+                copyFile(expandResourcePath("/csv"),
+                        templateProject.get("samples-csv").getAsString(),
+                        "project-" + newProjectId + "-samples.csv");
+            } else if (newProjectData.get("sampleDistribution").getAsString().equals("shp")) {
+                copyFile(expandResourcePath("/shp"),
+                        "project-" + templateID + "-samples/project-" + templateID + "-samples.json",
+                        "project-" + newProjectId + "-samples/project-" + newProjectId + "-samples.json");
+            }
 
-                    return newProjectData;
+            // create TimeSync file for the project timesync-data-<id>.json file
+            writeJsonFile("timesync-data-" + newProjectId + ".json", new JsonArray());
+
+            return newProjectData;
         } else {
             // Upload the plot-distribution-csv-file if one was provided
             if (newProjectData.get("plotDistribution").getAsString().equals("csv")) {
@@ -1271,9 +1271,6 @@ public class JsonProjects implements Projects {
         // Update numPlots and samplesPerPlot to match the numbers that were generated
         newProject.addProperty("numPlots", newPlots.size());
         newProject.addProperty("samplesPerPlot", newPlots.get(0).getAsJsonObject().getAsJsonArray("samples").size());
-
-        // create TimeSync file for the project timesync-data-<id>.json file
-        writeJsonFile("timesync-data-" + newProject.get("id").getAsString() + ".json", new JsonObject());
 
         // Return the updated project object
         return newProject;

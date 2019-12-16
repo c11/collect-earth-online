@@ -138,20 +138,20 @@ public class PostgresPlots implements Plots {
                 plotPstmt.setInt(2, plotId);
                 try (var rs = plotPstmt.executeQuery()) {
                     if (rs.next()) {
-            if (getUserPlots) {
-                try (var pstmt = conn.prepareStatement("SELECT * FROM select_user_plot_by_id(?,?,?)")) {
-                    pstmt.setInt(1, projectId);
-                    pstmt.setInt(2, plotId);
-                    pstmt.setString(3, userName);
-                    return queryPlot(pstmt, projectId, userId);
-                }
-            } else {
-                try (var pstmt = conn.prepareStatement("SELECT * FROM select_unassigned_plot_by_id(?,?)")) {
-                    pstmt.setInt(1, projectId);
-                    pstmt.setInt(2, plotId);
-                    return queryPlot(pstmt, projectId, userId);
-                }
-            }
+                        if (getUserPlots) {
+                            try (var pstmt = conn.prepareStatement("SELECT * FROM select_user_plot_by_id(?,?,?)")) {
+                                pstmt.setInt(1, projectId);
+                                pstmt.setInt(2, plotId);
+                                pstmt.setString(3, userName);
+                                return queryPlot(pstmt, projectId, userId);
+                            }
+                        } else {
+                            try (var pstmt = conn.prepareStatement("SELECT * FROM select_unassigned_plot_by_id(?,?)")) {
+                                pstmt.setInt(1, projectId);
+                                pstmt.setInt(2, plotId);
+                                return queryPlot(pstmt, projectId, userId);
+                            }
+                        }
                     } else {
                         return "not found";
                     }

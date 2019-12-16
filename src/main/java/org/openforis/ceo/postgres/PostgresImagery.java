@@ -33,10 +33,10 @@ public class PostgresImagery implements Imagery {
                 while(rs.next()) {
                     //create imagery json to send back
                     var newImagery = new JsonObject();
-                    newImagery.addProperty("id", rs.getInt("imagery_id"));
+                    newImagery.addProperty("id",          rs.getInt("imagery_id"));
                     newImagery.addProperty("institution", rs.getInt("institution_id"));
-                    newImagery.addProperty("visibility", rs.getString("visibility"));
-                    newImagery.addProperty("title", rs.getString("title"));
+                    newImagery.addProperty("visibility",  rs.getString("visibility"));
+                    newImagery.addProperty("title",       rs.getString("title"));
                     newImagery.addProperty("attribution", rs.getString("attribution"));
                     newImagery.add("extent", rs.getString("extent") == null || rs.getString("extent").equals("null")
                         ? null

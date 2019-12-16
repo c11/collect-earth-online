@@ -2,11 +2,9 @@ package org.openforis.ceo;
 
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
+import java.util.stream.Collectors;
 import org.openforis.ceo.env.CeoConfig;
-
 import spark.ModelAndView;
 import spark.Request;
 import spark.Route;
@@ -20,9 +18,10 @@ public class Views {
     }
 
     private static Map<String, String> getBaseModel(Request req, String navlink) {
+        var queryString = req.queryString();
         var model = Map.of("root",          CeoConfig.documentRoot,
                            "navlink",       navlink,
-                           "uri",           req.uri(),
+                           "uri",           req.uri() + ((queryString == null) ? "" : "?" + queryString),
                            "userid",        fromSession(req, "userid"),
                            "username",      fromSession(req, "username"),
                            "role",          fromSession(req, "role"),
@@ -81,8 +80,8 @@ public class Views {
     public static Route account(FreeMarkerEngine freemarker) {
         Function<Request, String> getAccountId = (req) -> req.queryParams("userId");
         return makeRoute("Account",
-                                      freemarker,
-                                      Map.of("account_id", getAccountId));
+                         freemarker,
+                         Map.of("account_id", getAccountId));
     }
 
     public static Route createInstitution(FreeMarkerEngine freemarker) {
@@ -107,14 +106,14 @@ public class Views {
         Function<Request, String> getInstitutionId = (req) -> req.queryParams("institutionId");
         return makeRoute("Create-Project",
                          freemarker,
-                                      Map.of("institution_id", getInstitutionId));
+                         Map.of("institution_id", getInstitutionId));
     }
 
     public static Route reviewProject(FreeMarkerEngine freemarker) {
         Function<Request, String> getProjectId = (req) -> req.queryParams("projectId");
         return makeRoute("Review-Project",
                          freemarker,
-                Map.of("project_id", getProjectId));
+                         Map.of("project_id", getProjectId));
     }
 
     public static Route projectDashboard(FreeMarkerEngine freemarker) {
@@ -172,8 +171,8 @@ public class Views {
     public static Route widgetLayoutEditor(FreeMarkerEngine freemarker) {
         Function<Request, String> getPid = (req) -> req.queryParams("projectId");
         return makeRoute("Widget-Layout-Editor",
-                                      freemarker,
-                                      Map.of("project_id", getPid));
+                         freemarker,
+                         Map.of("project_id", getPid));
     }
 
     public static Route pageNotFound(FreeMarkerEngine freemarker) {

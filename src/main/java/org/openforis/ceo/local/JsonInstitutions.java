@@ -31,7 +31,7 @@ public class JsonInstitutions implements Institutions {
         final var institutionId =
             qInstitutionId != null ? Integer.parseInt(qInstitutionId)
             : jInstitutionId != null ? Integer.parseInt(jInstitutionId)
-                : 0;
+            : 0;
 
         var matchingInstitution = getInstitutionById(institutionId);
         if (matchingInstitution.isPresent()) {

@@ -41,7 +41,7 @@ class BasicLayout extends React.PureComponent {
             widgetCloudScoreDual: "",
             formReady: false,
             wizardStep: 1,
-            pid: this.getParameterByName("pid"),
+            projectId: this.getParameterByName("projectId"),
             institutionID: this.getParameterByName("institutionId") ? this.getParameterByName("institutionId") : "1",
             theURI: this.props.documentRoot + "/geo-dash",
         };
@@ -49,7 +49,7 @@ class BasicLayout extends React.PureComponent {
 
 
     componentDidMount() {
-        fetch(this.state.theURI + "/id/" + this.state.pid)
+        fetch(this.state.theURI + "/get-by-projid?projectId=" + this.state.projectId)
             .then(response => response.ok ? response.json() : Promise.reject(response))
             .then(data => {
                 const widgets = Array.isArray(data.widgets)
@@ -195,7 +195,7 @@ class BasicLayout extends React.PureComponent {
 
     updateServerWidgets = () => {
         this.state.widgets.forEach( widget => {
-            const ajaxurl = this.state.theURI + "/updatewidget/widget/" + widget.id;
+            const ajaxurl = this.state.theURI + "/update-widget?widgetId=" + widget.id;
             this.serveItUp(ajaxurl, widget);
         });
     };
@@ -203,7 +203,7 @@ class BasicLayout extends React.PureComponent {
     serveItUp = (url, widget) => {
         fetch(url,
               {
-                  method: "post",
+                  method: "POST",
                   headers: {
                       "Accept": "application/json",
                       "Content-Type": "application/json",
@@ -221,7 +221,7 @@ class BasicLayout extends React.PureComponent {
     };
 
     deleteWidgetFromServer = widget => {
-        const ajaxurl = this.state.theURI + "/deletewidget/widget/" + widget.id;
+        const ajaxurl = this.state.theURI + "/delete-widget?widgetId=" + widget.id;
         this.serveItUp(ajaxurl, widget);
     };
 
@@ -231,7 +231,7 @@ class BasicLayout extends React.PureComponent {
             <div
                 onDragStart={this.onDragStart}
                 onDragEnd={this.onDragEnd}
-                key={i}
+                key={widget.layout.i}
                 data-grid={widget.layout}
                 className="front widgetEditor-widgetBackground"
                 style={{ backgroundImage: "url(" + this.getImageByType(widget.properties[0]) + ")" }}
@@ -240,7 +240,7 @@ class BasicLayout extends React.PureComponent {
                     <span
                         className="remove"
                         onClick={e => {
-                            e.stopPropagation(); this.onRemoveItem(i);
+                            e.stopPropagation(); this.onRemoveItem(widget.layout.i);
                         }}
                         onMouseDown={function(e) {
                             e.stopPropagation();
@@ -257,7 +257,7 @@ class BasicLayout extends React.PureComponent {
         if (this.state.addCustomImagery === true) {
             fetch(this.props.documentRoot + "/add-geodash-imagery",
                   {
-                      method: "post",
+                      method: "POST",
                       headers: {
                           "Accept": "application/json",
                           "Content-Type": "application/json",
@@ -274,9 +274,8 @@ class BasicLayout extends React.PureComponent {
     };
 
     buildImageryObject = img => {
-        console.log(img);
         const gatewayUrl = this.props.documentRoot + "/geo-dash/gateway-request";
-        let title = img.filterType.replace(/\w\S*/g, function (word) {
+        let title = this.state.widgetTitle !== "" ? this.state.widgetTitle : img.filterType.replace(/\w\S*/g, function (word) {
             return word.charAt(0) + word.slice(1).toLowerCase();
         }) + ": " + img.startDate + " to " + img.endDate;
         const ImageAsset = img.ImageAsset ? img.ImageAsset : "";
@@ -298,12 +297,12 @@ class BasicLayout extends React.PureComponent {
             },
         };
         if (img.ImageAsset && img.ImageAsset.length > 0) {
-            title = img.ImageAsset.substr(img.ImageAsset.lastIndexOf("/") + 1).replace(new RegExp("_", "g"), " ");
+            title = this.state.widgetTitle !== "" ? this.state.widgetTitle : img.ImageAsset.substr(img.ImageAsset.lastIndexOf("/") + 1).replace(new RegExp("_", "g"), " ");
             iObject.imageryTitle = title;
             iObject.ImageAsset = img.ImageAsset;
         }
         if (img.ImageCollectionAsset && img.ImageCollectionAsset.length > 0) {
-            title = img.ImageCollectionAsset.substr(img.ImageCollectionAsset.lastIndexOf("/") + 1).replace(new RegExp("_", "g"), " ");
+            title = this.state.widgetTitle !== "" ? this.state.widgetTitle : img.ImageCollectionAsset.substr(img.ImageCollectionAsset.lastIndexOf("/") + 1).replace(new RegExp("_", "g"), " ");
             iObject.imageryTitle = title;
             iObject.ImageCollectionAsset = img.ImageCollectionAsset;
         }
@@ -597,15 +596,15 @@ class BasicLayout extends React.PureComponent {
             }
         }
 
-        fetch(this.state.theURI + "/createwidget/widget",
+        fetch(this.state.theURI + "/create-widget",
               {
-                  method: "post",
+                  method: "POST",
                   headers: {
                       "Accept": "application/json",
                       "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                      pID: this.state.pid,
+                      projectId: this.state.projectId,
                       dashID: this.state.dashboardID,
                       widgetJSON: JSON.stringify(widget),
                   }),

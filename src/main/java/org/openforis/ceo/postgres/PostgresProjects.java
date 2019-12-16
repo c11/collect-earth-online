@@ -60,7 +60,7 @@ public class PostgresProjects implements Projects {
         final var projectId =
             qProjectId != null ? Integer.parseInt(qProjectId)
             : jProjectId != null ? Integer.parseInt(jProjectId)
-                : 0;
+            : 0;
 
         try (var conn = connect();
              var pstmt = conn.prepareStatement("SELECT * FROM " + queryFn + "(?, ?)")) {
