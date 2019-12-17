@@ -38,6 +38,10 @@
         <!-- Billy's custom styles and scripts -->
         <link rel="stylesheet" type="text/css" href="${root}/css/geo-dash.css">
 
+        <!-- TimeSync's style and script -->
+        <link rel="stylesheet" type="text/css" href="${root}/css/timesync_style.css">
+
+
         <#include "googleanalytics.ftl" ignore_missing=true>
     </head>
     <body style="padding-top:60px;">
