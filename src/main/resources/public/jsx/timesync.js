@@ -170,28 +170,28 @@ class MainToolbar extends React.Component {
                 <div id="chipOptionHolder">
                     <div className="chipOptions" id="chipSizeDiv">
                         <p style={{display: "inline-block"}}>Chip Size:</p>
-                        <input id="chipSize" autoComplete="off" type="number" name="chipSize" min="135" max="255" step="10" value="195" />
+                        <input id="chipSize" autoComplete="off" type="number" name="chipSize" min="135" max="255" step="10" defaultValue="195" />
                     </div>
                     <div className="chipOptions" id="plotSizeDiv" style={{display: "none"}}>
                         <p style={{display: "inline-block"}}>Plot Size:</p>
-                        <input id="plotSize" autoComplete="off" type="number" name="plotSize" min="1" max="5" step="2" value="1" />
+                        <input id="plotSize" autoComplete="off" type="number" name="plotSize" min="1" max="5" step="2" defaultValue="1" />
                     </div>
                     <div className="chipOptions">
                         <p style={{display: "inline-block"}}>Zoom:</p>
                         <span className="glyphicon glyphicon-minus"></span>
-                        <input id="zoomSize" autoComplete="off" type="range" name="zoomSize" min="0" max="40" value="20" />
+                        <input id="zoomSize" autoComplete="off" type="range" name="zoomSize" min="0" max="40" defaultValue="20" />
                         <span className="glyphicon glyphicon-plus"></span>
                     </div>
                     <div className="chipOptions colorOptions" style={{display: "none"}}>
-                        <input id="selectedColor" autoComplete="off" type="color" name="selectedColor" value="#ED2939" />
+                        <input id="selectedColor" autoComplete="off" type="color" name="selectedColor" defaultValue="#ED2939" />
                         <p style={{display: "inline-block"}}>Selected</p>
                     </div>
                     <div className="chipOptions colorOptions" style={{display: "none"}}>
-                        <input id="highlightColor" autoComplete="off" type="color" name="highlightColor" value="#32CD32" />
+                        <input id="highlightColor" autoComplete="off" type="color" name="highlightColor" defaultValue="#32CD32" />
                         <p style={{display: "inline-block"}}>Highlight</p>
                     </div>
                     <div className="chipOptions colorOptions" style={{display: "none"}}>
-                        <input id="plotColor" autoComplete="off" type="color" name="plotColor" value="#FFFFFF" />
+                        <input id="plotColor" autoComplete="off" type="color" name="plotColor" defaultValue="#FFFFFF" />
                         <p style={{display: "inline-block"}}>Plot</p>
                     </div>
                 </div>
@@ -223,7 +223,7 @@ class MainToolbar extends React.Component {
 
                 <div style={{display: "inline-block"}}>
                     <label className="switch switch-left-right">
-                        <input id="showAnomaly" className="switch-input" type="checkbox" checked autoComplete="off" />
+                        <input id="showAnomaly" className="switch-input" type="checkbox" defaultChecked autoComplete="off" />
                         Clear Pixels only
                     </label>
                 </div>
@@ -376,12 +376,14 @@ class InterpretationPanel extends React.Component {
                             <col width="38" />
                             <col width="38" />
                         </colgroup>
-                        <tr className="trHeader">
-                            <th></th>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Change Process</th>
-                        </tr>
+                        <tbody>
+                            <tr className="trHeader">
+                                <th></th>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Change Process</th>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
 
@@ -402,25 +404,25 @@ class InterpretationPanel extends React.Component {
                     </ul>
                     <p className="subHeader">Notes:</p>
                     <ul id="CPnotesList" className="notesList">
-                        <li><input id="natural" className="natural forFire" type="checkbox" name="changeProcess" value="natural"
+                        <li><input id="natural" className="natural forFire" type="checkbox" name="changeProcess" defaultValue="natural"
                                    autoComplete="off"/> Natural</li>
-                        <li><input id="clearcut" className="clearcut forHarvest" type="checkbox" name="changeProcess" value="clearcut"
+                        <li><input id="clearcut" className="clearcut forHarvest" type="checkbox" name="changeProcess" defaultValue="clearcut"
                                    autoComplete="off"/> Clearcut</li>
-                        <li><input id="thinning" className="thinning forHarvest" type="checkbox" name="changeProcess" value="thinning"
+                        <li><input id="thinning" className="thinning forHarvest" type="checkbox" name="changeProcess" defaultValue="thinning"
                                    autoComplete="off"/> Thinning</li>
-                        <li><input id="prescribed" className="prescribed forFire" type="checkbox" name="changeProcess" value="prescribed"
+                        <li><input id="prescribed" className="prescribed forFire" type="checkbox" name="changeProcess" defaultValue="prescribed"
                                    autoComplete="off"/> Prescribed</li>
                         <li><input id="sitePrepFire" className="sitePrepFire forFire forHarvest" type="checkbox" name="changeProcess"
-                                   value="sitePrepFire" autoComplete="off"/> Site-prep fire</li>
-                        <li><input id="flooding" className="flooding forHydro" type="checkbox" name="changeProcess" value="flooding"
+                                   defaultValue="sitePrepFire" autoComplete="off"/> Site-prep fire</li>
+                        <li><input id="flooding" className="flooding forHydro" type="checkbox" name="changeProcess" defaultValue="flooding"
                                    autoComplete="off"/> Flooding</li>
                         <li><input id="reserviorLakeFlux" className="reserviorLakeFlux forHydro" type="checkbox" name="changeProcess"
-                                   value="reserviorLakeFlux" autoComplete="off"/> Reservoir/Lake flux</li>
+                                   defaultValue="reserviorLakeFlux" autoComplete="off"/> Reservoir/Lake flux</li>
                         <li><input id="wetlandDrainage" className="wetlandDrainage forConserv" type="checkbox" name="changeProcess"
-                                   value="wetlandDrainage" autoComplete="off"/> Wetland drainage</li>
+                                   defaultValue="wetlandDrainage" autoComplete="off"/> Wetland drainage</li>
                         <li><input id="airphotoOnly"
                                    className="airphotoOnly forFire forHarvest forDecline forAcuteDecline forConditionDecline forWind forHydro forDebris forGrowth forStable forMechanical forOther"
-                                   type="checkbox" name="changeProcess" value="airphotoOnly" autoComplete="off"/> Airphoto only
+                                   type="checkbox" name="changeProcess" defaultValue="airphotoOnly" autoComplete="off"/> Airphoto only
                         </li>
                     </ul>
                 </div>
@@ -432,93 +434,97 @@ class InterpretationPanel extends React.Component {
                             <col width="38"/>
                             <col width="140"/>
                         </colgroup>
-                        <tr className="trHeader">
-                            <th></th>
-                            <th>Year</th>
-                            <th>Land Use</th>
-                            <th>Land Cover</th>
-                        </tr>
+                        <tbody>
+                            <tr className="trHeader">
+                                <th></th>
+                                <th>Year</th>
+                                <th>Land Use</th>
+                                <th>Land Cover</th>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
 
                 <div id="lulc" className="dropThis">
                     <table style={{border: "none"}}>
-                        <tr>
-                            <td style={{padding: "0px 0px 0px 0px", border: "none"}}>
-                                <div id="landUseDiv" style={{margin: "4px 2px 0px 4px"}}>
-                                    <p className="subHeader">Land Use:</p>
-                                    <ul id="luLevelSwitchHolder" className="lulcLevelSwitchHolder">
-                                        <li id="LUprimaryTab" className="selected" style={{borderTopLeftRadius: "4px", textAlign: "center"}}>
-                                            Primary
-                                        </li>
-                                        <li id="LUsecondaryTab" style={{marginLeft: "-1px", borderTopRightRadius: "4px", textAlign: "center"}}>
-                                            Secondary
-                                        </li>
-                                    </ul>
+                        <tbody>
+                            <tr>
+                                <td style={{padding: "0px 0px 0px 0px", border: "none"}}>
+                                    <div id="landUseDiv" style={{margin: "4px 2px 0px 4px"}}>
+                                        <p className="subHeader">Land Use:</p>
+                                        <ul id="luLevelSwitchHolder" className="lulcLevelSwitchHolder">
+                                            <li id="LUprimaryTab" className="selected" style={{borderTopLeftRadius: "4px", textAlign: "center"}}>
+                                                Primary
+                                            </li>
+                                            <li id="LUsecondaryTab" style={{marginLeft: "-1px", borderTopRightRadius: "4px", textAlign: "center"}}>
+                                                Secondary
+                                            </li>
+                                        </ul>
 
-                                    <ul id="landUseList" className="LUlist">
-                                        <li id="forest" className="forest">Forest</li>
-                                        <li id="developed" className="developed">Developed</li>
-                                        <li id="ag" className="ag">Agriculture</li>
-                                        <li id="nonForWet" className="nonForWet">Non-forest Wetland</li>
-                                        <li id="rangeland" className="rangeland">Rangeland</li>
-                                        <li id="otherLU" className="otherLU">Other</li>
-                                    </ul>
+                                        <ul id="landUseList" className="LUlist">
+                                            <li id="forest" className="forest">Forest</li>
+                                            <li id="developed" className="developed">Developed</li>
+                                            <li id="ag" className="ag">Agriculture</li>
+                                            <li id="nonForWet" className="nonForWet">Non-forest Wetland</li>
+                                            <li id="rangeland" className="rangeland">Rangeland</li>
+                                            <li id="otherLU" className="otherLU">Other</li>
+                                        </ul>
 
-                                    <ul id="landUseListSec" className="LUlist" style={{display: "none"}}>
-                                        <li id="forest" className="forest">Forest</li>
-                                        <li id="developed" className="developed">Developed</li>
-                                        <li id="ag" className="ag">Agriculture</li>
-                                        <li id="nonForWet" className="nonForWet">Non-forest Wetland</li>
-                                        <li id="rangeland" className="rangeland">Rangeland</li>
-                                        <li id="otherLU" className="otherLU">Other</li>
-                                    </ul>
+                                        <ul id="landUseListSec" className="LUlist" style={{display: "none"}}>
+                                            <li id="forest" className="forest">Forest</li>
+                                            <li id="developed" className="developed">Developed</li>
+                                            <li id="ag" className="ag">Agriculture</li>
+                                            <li id="nonForWet" className="nonForWet">Non-forest Wetland</li>
+                                            <li id="rangeland" className="rangeland">Rangeland</li>
+                                            <li id="otherLU" className="otherLU">Other</li>
+                                        </ul>
 
-                                    <p className="subHeader">Notes:</p>
-                                    <ul id="LUnotesList" className="notesList">
-                                        <li><input id="wetland" className="wetland forForest" type="checkbox" name="landUse" value="wetland" autoComplete="off"/> Wetland</li>
-                                        <li><input id="mining" className="mining forDeveloped" type="checkbox" name="landUse" value="mining" autoComplete="off"/> Mining</li>
-                                        <li><input id="rowCrop" className="rowCrop forAg" className="rowCrop forAg" type="checkbox" name="landUse" value="rowCrop" autoComplete="off"/> Row crop</li>
-                                        <li><input id="orchardTreeFarm" className="orchardTreeFarm forAg" type="checkbox" name="landUse" value="orchardTreeFarm" autoComplete="off"/> Orchard/Tree farm/Vineyard</li>
-                                    </ul>
+                                        <p className="subHeader">Notes:</p>
+                                        <ul id="LUnotesList" className="notesList">
+                                            <li><input id="wetland" className="wetland forForest" type="checkbox" name="landUse" defaultValue="wetland" autoComplete="off"/> Wetland</li>
+                                            <li><input id="mining" className="mining forDeveloped" type="checkbox" name="landUse" defaultValue="mining" autoComplete="off"/> Mining</li>
+                                            <li><input id="rowCrop" className="rowCrop forAg" className="rowCrop forAg" type="checkbox" name="landUse" defaultValue="rowCrop" autoComplete="off"/> Row crop</li>
+                                            <li><input id="orchardTreeFarm" className="orchardTreeFarm forAg" type="checkbox" name="landUse" defaultValue="orchardTreeFarm" autoComplete="off"/> Orchard/Tree farm/Vineyard</li>
+                                        </ul>
 
-                                    <ul id="LUnotesListSec" className="notesList" style={{display: "none"}}>
-                                        <li><input id="wetland" className="wetland forForest" type="checkbox" name="landUse" value="wetland" autoComplete="off"/> Wetland</li>
-                                        <li><input id="mining" className="mining forDeveloped" type="checkbox" name="landUse" value="mining" autoComplete="off"/> Mining</li>
-                                        <li><input id="rowCrop" className="rowCrop forAg" className="rowCrop forAg" type="checkbox" name="landUse" value="rowCrop" autoComplete="off"/> Row crop</li>
-                                        <li><input id="orchardTreeFarm" className="orchardTreeFarm forAg" type="checkbox" name="landUse" value="orchardTreeFarm" autoComplete="off"/> Orchard/Tree farm/Vineyard</li>
-                                    </ul>
-                                </div>
-                            </td>
-                            <td style={{padding: "0px 0px 0px 0px", border: "none"}}>
-                                <div id="landCoverDiv" style={{margin: "4px 4px 0px 3px"}}>
-                                    <p className="subHeader">Land Cover:</p>
-                                    <ul id="lcLevelSwitchHolder" className="lulcLevelSwitchHolder">
-                                        <li id="LCprimaryTab" className="selected" style={{borderTopLeftRadius: "4px", borderTopRightRadius: "4px", textAlign: "center"}}> Primary</li>
-                                    </ul>
+                                        <ul id="LUnotesListSec" className="notesList" style={{display: "none"}}>
+                                            <li><input id="wetland" className="wetland forForest" type="checkbox" name="landUse" defaultValue="wetland" autoComplete="off"/> Wetland</li>
+                                            <li><input id="mining" className="mining forDeveloped" type="checkbox" name="landUse" defaultValue="mining" autoComplete="off"/> Mining</li>
+                                            <li><input id="rowCrop" className="rowCrop forAg" className="rowCrop forAg" type="checkbox" name="landUse" defaultValue="rowCrop" autoComplete="off"/> Row crop</li>
+                                            <li><input id="orchardTreeFarm" className="orchardTreeFarm forAg" type="checkbox" name="landUse" defaultValue="orchardTreeFarm" autoComplete="off"/> Orchard/Tree farm/Vineyard</li>
+                                        </ul>
+                                    </div>
+                                </td>
+                                <td style={{padding: "0px 0px 0px 0px", border: "none"}}>
+                                    <div id="landCoverDiv" style={{margin: "4px 4px 0px 3px"}}>
+                                        <p className="subHeader">Land Cover:</p>
+                                        <ul id="lcLevelSwitchHolder" className="lulcLevelSwitchHolder">
+                                            <li id="LCprimaryTab" className="selected" style={{borderTopLeftRadius: "4px", borderTopRightRadius: "4px", textAlign: "center"}}> Primary</li>
+                                        </ul>
 
-                                    <ul id="landCoverList">
-                                        <li id="treesLC">Trees</li>
-                                        <li id="shrubsLC">Shrubs</li>
-                                        <li id="gfhLC">Grass/forb/herb</li>
-                                        <li id="imperviousLC">Impervious</li>
-                                        <li id="natBarLC">Barren</li>
-                                        <li id="snowIceLC">Snow/ice</li>
-                                        <li id="waterLC">Water</li>
-                                    </ul>
-                                    <p className="subHeader">Other:</p>
-                                    <ul id="LCnotesList" className="notesList">
-                                        <li className="trees"><input id="trees" type="checkbox" name="landCover" value="trees" autoComplete="off"/> Trees</li>
-                                        <li className="shrubs"><input id="shrubs" type="checkbox" name="landCover" value="shrubs" autoComplete="off"/> Shrubs</li>
-                                        <li className="grassForbHerb"><input id="grassForbHerb" type="checkbox" name="landCover" value="grassForbHerb" autoComplete="off"/> Grass/forb/herb</li>
-                                        <li className="impervious"><input id="impervious" type="checkbox" name="landCover" value="impervious" autoComplete="off"/> Impervious</li>
-                                        <li className="naturalBarren"><input id="naturalBarren" type="checkbox" name="landCover" value="naturalBarren" autoComplete="off"/> Barren</li>
-                                        <li className="snowIce"><input id="snowIce" type="checkbox" name="landCover" value="snowIce" autoComplete="off"/> Snow/ice</li>
-                                        <li className="water"><input id="water" type="checkbox" name="landCover" value="water" autoComplete="off"/> Water</li>
-                                    </ul>
-                                </div>
-                            </td>
-                        </tr>
+                                        <ul id="landCoverList">
+                                            <li id="treesLC">Trees</li>
+                                            <li id="shrubsLC">Shrubs</li>
+                                            <li id="gfhLC">Grass/forb/herb</li>
+                                            <li id="imperviousLC">Impervious</li>
+                                            <li id="natBarLC">Barren</li>
+                                            <li id="snowIceLC">Snow/ice</li>
+                                            <li id="waterLC">Water</li>
+                                        </ul>
+                                        <p className="subHeader">Other:</p>
+                                        <ul id="LCnotesList" className="notesList">
+                                            <li className="trees"><input id="trees" type="checkbox" name="landCover" defaultValue="trees" autoComplete="off"/> Trees</li>
+                                            <li className="shrubs"><input id="shrubs" type="checkbox" name="landCover" defaultValue="shrubs" autoComplete="off"/> Shrubs</li>
+                                            <li className="grassForbHerb"><input id="grassForbHerb" type="checkbox" name="landCover" defaultValue="grassForbHerb" autoComplete="off"/> Grass/forb/herb</li>
+                                            <li className="impervious"><input id="impervious" type="checkbox" name="landCover" defaultValue="impervious" autoComplete="off"/> Impervious</li>
+                                            <li className="naturalBarren"><input id="naturalBarren" type="checkbox" name="landCover" defaultValue="naturalBarren" autoComplete="off"/> Barren</li>
+                                            <li className="snowIce"><input id="snowIce" type="checkbox" name="landCover" defaultValue="snowIce" autoComplete="off"/> Snow/ice</li>
+                                            <li className="water"><input id="water" type="checkbox" name="landCover" defaultValue="water" autoComplete="off"/> Water</li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
 
@@ -527,7 +533,7 @@ class InterpretationPanel extends React.Component {
                         <textarea id="commentInput" autoComplete="off"></textarea>
                     </div>
                     <div id="exampleCheckBox">
-                        <input type="checkbox" id="isExampleCheckbox" value="True" autoComplete="off"/> Example
+                        <input type="checkbox" id="isExampleCheckbox" defaultValue="True" autoComplete="off"/> Example
                     </div>
                 </div>
 
