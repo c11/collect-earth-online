@@ -416,6 +416,85 @@ class TimeSync extends React.Component {
     }
 }
 
+class ProjectList extends React.Component {
+    render() {
+        return (
+            <div>Project List</div>
+        );
+    }
+}
+
+class PacketList extends React.Component {
+    render() {
+        return (
+            <div>Packet List</div>
+        );
+    }
+}
+
+class ChipSize extends React.Component {
+    render() {
+        return (
+            <div>Chip Size Box</div>
+        );
+    }
+}
+
+class ZoomControl extends React.Component {
+    render() {
+        return (
+            <div>Zoom Slider</div>
+        )
+    }
+}
+
+class UtilControl extends React.Component {
+    render() {
+        return (
+            <div>Export functions etc.</div>
+        )
+    }
+}
+
+class SpectralTrajectory extends React.Component {
+    render() {
+        return (
+            <div>Spectral Trajectory</div>
+        );
+    }
+}
+
+class SpectralToolbar extends React.Component {
+    render() {
+        return (
+            <div>toolbar for spectral trajectory</div>
+        );
+    }
+}
+
+class InterpretationForm extends React.Component {
+    render() {
+        return (
+            <div>Interpretation forms</div>
+        );
+    }
+}
+
+class ChipViewer extends React.Component {
+    render() {
+        return (
+            <div>Individual Chip Viewer</div>
+        );
+    }
+}
+
+class ChipGallery extends React.Component {
+    render() {
+        return (
+            <div>Chip Gallery</div>
+        );
+    }
+}
 
 export function renderTimeSyncPage(args) {
     ReactDOM.render(
