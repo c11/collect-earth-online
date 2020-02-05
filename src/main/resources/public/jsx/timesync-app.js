@@ -35,7 +35,7 @@ class TimeSync extends React.Component {
             maxZoom: 40,
             stopZoom: 40,
             sAjd: [0],
-            // lwAdj: [chipDisplayProps.box],
+            lwAdj: [chipDisplayProps.box],
             zoomIn: 0,
 
             //windowH: $(window).height(); //NOT state variable, should get it on the fly
